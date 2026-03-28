@@ -1,0 +1,13 @@
+{
+  "name": "wpdm/wpp-data-merge",
+  "description": "WPP Data Merge Plugin",
+  "type": "project",
+  "license": "proprietary",
+  "autoload": {
+    "psr-4": {
+      "WPDM\\": "src/"
+    }
+  },
+  "require": {},
+  "require-dev": {}
+}
