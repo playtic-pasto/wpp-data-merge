@@ -3,6 +3,7 @@
 namespace WPDM\Core\Infrastructure\WordPress\Admin;
 
 use WPDM\Shared\Encryption\WPDM_Encryption;
+use WPDM\Core\Infrastructure\Api\WPDM_AuthService;
 
 class Menu
 {
@@ -137,60 +138,13 @@ class Menu
             return;
         }
 
-        $endpoint = get_option('wpdm_api_endpoint', '');
-        $user = get_option('wpdm_api_user', '');
-        $password = get_option('wpdm_api_password', '');
+        $result = WPDM_AuthService::getToken(true);
 
-        if (empty($endpoint) || empty($user) || empty($password)) {
-            set_transient('wpdm_test_result', [
-                'success' => false,
-                'message' => 'Faltan credenciales. Guarda el endpoint, usuario y contraseña primero.',
-            ], 30);
-            wp_safe_redirect(admin_url('admin.php?page=wpdm-settings&wpdm_tested=1'));
-            exit;
-        }
-
-        $body = wp_json_encode([
-            'NomUsuario'   => WPDM_Encryption::decrypt($user),
-            'ClaveUsuario' => WPDM_Encryption::decrypt($password),
-        ]);
-
-        $response = wp_remote_post($endpoint, [
-            'headers' => ['Content-Type' => 'application/json'],
-            'body'    => $body,
-            'timeout' => 15,
-        ]);
-
-        if (is_wp_error($response)) {
-            set_transient('wpdm_test_result', [
-                'success' => false,
-                'message' => 'Error de conexión: ' . $response->get_error_message(),
-            ], 30);
-            wp_safe_redirect(admin_url('admin.php?page=wpdm-settings&wpdm_tested=1'));
-            exit;
-        }
-
-        $code = wp_remote_retrieve_response_code($response);
-        $responseBody = json_decode(wp_remote_retrieve_body($response), true);
-
-        if ($code === 200 && !empty($responseBody['access_token'])) {
-            set_transient('wpdm_test_result', [
-                'success' => true,
-                'message' => 'Conexión exitosa.',
-                'data'    => [
-                    'token_type'  => $responseBody['token_type'] ?? '',
-                    'expires_in'  => $responseBody['expires_in'] ?? '',
-                    'usuario'     => $responseBody['data']['NomUsuario'] ?? '',
-                    'id_usuario'  => $responseBody['data']['IdUsuario'] ?? '',
-                ],
-            ], 30);
-        } else {
-            $error_msg = $responseBody['message'] ?? $responseBody['title'] ?? "Respuesta HTTP {$code}";
-            set_transient('wpdm_test_result', [
-                'success' => false,
-                'message' => 'Error de autenticación: ' . $error_msg,
-            ], 30);
-        }
+        set_transient('wpdm_test_result', [
+            'success' => $result['success'],
+            'message' => $result['message'],
+            'data'    => $result['data'] ?? [],
+        ], 30);
 
         wp_safe_redirect(admin_url('admin.php?page=wpdm-settings&wpdm_tested=1'));
         exit;
