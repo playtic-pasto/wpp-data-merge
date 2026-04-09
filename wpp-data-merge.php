@@ -3,7 +3,7 @@
     * Plugin Name: WPP Data Merge
     * Description: Conecta los datos de CINMCO ERP y sincroniza post creando o actualizando en informacion requerida en WP.
     * Plugin URI: https://www.instagram.com/playtic_pasto/
-    * Version: 0.0.1-alpha.1
+    * Version: 0.0.1-alpha.2
     * Author: PlayTIC
     * Author URI: hhttps://www.instagram.com/playtic_pasto/
     * Licence: GPLv2 or later
@@ -42,7 +42,7 @@ use WPDM\Bootstrap\Plugin;
 define('WPDM_PATH', plugin_dir_path(__FILE__));
 define('WPDM_URL', plugin_dir_url(__FILE__));
 define('WPDM_FILE', __FILE__);
-define('WPDM_VERSION', '1.0.0'); 
+define('WPDM_VERSION', get_file_data(__FILE__, ['Version' => 'Version'])['Version']);
 
 
 Plugin::init();
