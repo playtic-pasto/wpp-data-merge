@@ -1,0 +1,182 @@
+/* WP Data Merge — Admin Styles */
+
+.wpdm-wrap {
+    max-width: 1100px;
+}
+
+.wpdm-wrap h1 {
+    font-size: 1.6em;
+    margin-bottom: 20px;
+}
+
+/* Cards grid */
+.wpdm-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.wpdm-card {
+    background: #fff;
+    border: 1px solid #c3c4c7;
+    border-radius: 4px;
+    padding: 20px;
+}
+
+.wpdm-card h2 {
+    margin-top: 0;
+    font-size: 1.1em;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+}
+
+.wpdm-card p {
+    color: #50575e;
+}
+
+/* Stats */
+.wpdm-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 15px;
+    margin: 20px 0;
+}
+
+.wpdm-stat {
+    background: #fff;
+    border: 1px solid #c3c4c7;
+    border-left: 4px solid #2271b1;
+    border-radius: 4px;
+    padding: 15px 20px;
+    text-align: center;
+}
+
+.wpdm-stat .wpdm-stat-value {
+    font-size: 2em;
+    font-weight: 600;
+    color: #1d2327;
+    display: block;
+}
+
+.wpdm-stat .wpdm-stat-label {
+    color: #50575e;
+    font-size: 0.9em;
+    margin-top: 4px;
+    display: block;
+}
+
+.wpdm-stat.wpdm-stat--success {
+    border-left-color: #00a32a;
+}
+
+.wpdm-stat.wpdm-stat--warning {
+    border-left-color: #dba617;
+}
+
+.wpdm-stat.wpdm-stat--danger {
+    border-left-color: #d63638;
+}
+
+/* Form */
+.wpdm-form-table th {
+    width: 200px;
+    padding: 15px 10px 15px 0;
+}
+
+.wpdm-form-table td {
+    padding: 10px 0;
+}
+
+.wpdm-form-table input[type="text"],
+.wpdm-form-table input[type="url"],
+.wpdm-form-table input[type="password"] {
+    width: 100%;
+    max-width: 500px;
+}
+
+.wpdm-form-table .description {
+    color: #646970;
+    font-style: italic;
+    margin-top: 4px;
+}
+
+/* Status badge */
+.wpdm-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 0.85em;
+    font-weight: 500;
+}
+
+.wpdm-badge--active {
+    background: #d4edda;
+    color: #155724;
+}
+
+.wpdm-badge--inactive {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.wpdm-badge--pending {
+    background: #fff3cd;
+    color: #856404;
+}
+
+/* Section */
+.wpdm-section {
+    background: #fff;
+    border: 1px solid #c3c4c7;
+    border-radius: 4px;
+    padding: 20px;
+    margin-top: 20px;
+}
+
+.wpdm-section h2 {
+    margin-top: 0;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #eee;
+}
+
+/* FAQ */
+.wpdm-faq-item {
+    margin-bottom: 15px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 15px;
+}
+
+.wpdm-faq-item:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+.wpdm-faq-item h3 {
+    margin: 0 0 5px 0;
+    font-size: 0.95em;
+}
+
+.wpdm-faq-item p {
+    margin: 0;
+    color: #50575e;
+}
+
+/* Table overrides */
+.wpdm-wrap .widefat td,
+.wpdm-wrap .widefat th {
+    vertical-align: middle;
+}
+
+/* Cron config table */
+.wpdm-cron-config td {
+    padding: 8px 0;
+}
+
+.wpdm-cron-config th {
+    text-align: left;
+    padding: 8px 15px 8px 0;
+    font-weight: 600;
+    white-space: nowrap;
+}
