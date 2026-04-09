@@ -4,22 +4,43 @@ declare(strict_types=1);
 
 namespace WPDM\Core\Infrastructure\WordPress\Admin;
 
+use WPDM\Core\Infrastructure\WordPress\Admin\Pages\DashboardPage;
+use WPDM\Core\Infrastructure\WordPress\Admin\Pages\SettingsPage;
+use WPDM\Core\Infrastructure\WordPress\Admin\Pages\CronPage;
+use WPDM\Core\Infrastructure\WordPress\Admin\Pages\ProjectsPage;
+use WPDM\Core\Infrastructure\WordPress\Admin\Pages\SupportPage;
+
 /**
- * Permite agregar un menú personalizado en el panel de administración de WordPress para gestionar las funcionalidades del plugin WP Data Merge.
+ * Registra el menú de administración del plugin en WordPress.
  * 
  * @name Menu
  * @package WPDM\Core\Infrastructure\WordPress\Admin
  * @since 1.0.0
-
  */
 class Menu
 {
     /** @var array<string, string> */
     private array $pluginConfig;
 
-    public function __construct()
-    {
-        $this->pluginConfig = require WPDM_PATH . 'config/plugin.php';
+    private DashboardPage $dashboardPage;
+    private SettingsPage $settingsPage;
+    private CronPage $cronPage;
+    private ProjectsPage $projectsPage;
+    private SupportPage $supportPage;
+
+    public function __construct(
+        ?DashboardPage $dashboardPage = null,
+        ?SettingsPage $settingsPage = null,
+        ?CronPage $cronPage = null,
+        ?ProjectsPage $projectsPage = null,
+        ?SupportPage $supportPage = null
+    ) {
+        $this->pluginConfig  = require WPDM_PATH . 'config/plugin.php';
+        $this->dashboardPage = $dashboardPage ?? new DashboardPage();
+        $this->settingsPage  = $settingsPage ?? new SettingsPage();
+        $this->cronPage      = $cronPage ?? new CronPage();
+        $this->projectsPage  = $projectsPage ?? new ProjectsPage();
+        $this->supportPage   = $supportPage ?? new SupportPage();
     }
 
     public function register(): void
@@ -34,7 +55,7 @@ class Menu
             $this->pluginConfig['name'],
             'manage_options',
             'wpdm-dashboard',
-            [$this, 'renderDashboard'],
+            [$this->dashboardPage, 'render'],
             'dashicons-database',
             80
         );
@@ -45,7 +66,7 @@ class Menu
             'Panel Principal',
             'manage_options',
             'wpdm-dashboard',
-            [$this, 'renderDashboard']
+            [$this->dashboardPage, 'render']
         );
 
         add_submenu_page(
@@ -54,7 +75,7 @@ class Menu
             'Conexión API',
             'manage_options',
             'wpdm-settings',
-            [$this, 'renderSettings']
+            [$this->settingsPage, 'render']
         );
 
         add_submenu_page(
@@ -63,7 +84,7 @@ class Menu
             'Cron Job',
             'manage_options',
             'wpdm-cron',
-            [$this, 'renderCron']
+            [$this->cronPage, 'render']
         );
 
         add_submenu_page(
@@ -72,7 +93,7 @@ class Menu
             'Proyectos',
             'manage_options',
             'wpdm-projects',
-            [$this, 'renderProjects']
+            [$this->projectsPage, 'render']
         );
 
         add_submenu_page(
@@ -81,32 +102,7 @@ class Menu
             'Soporte',
             'manage_options',
             'wpdm-support',
-            [$this, 'renderSupport']
+            [$this->supportPage, 'render']
         );
-    }
-
-    public function renderDashboard(): void
-    {
-        include WPDM_PATH . 'templates/admin/dashboard.php';
-    }
-
-    public function renderSettings(): void
-    {
-        include WPDM_PATH . 'templates/admin/settings.php';
-    }
-
-    public function renderCron(): void
-    {
-        include WPDM_PATH . 'templates/admin/cron.php';
-    }
-
-    public function renderProjects(): void
-    {
-        include WPDM_PATH . 'templates/admin/projects.php';
-    }
-
-    public function renderSupport(): void
-    {
-        include WPDM_PATH . 'templates/admin/support.php';
     }
 }

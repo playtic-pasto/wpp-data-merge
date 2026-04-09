@@ -22,10 +22,11 @@ class WPDM_Logger
      */
     public function __construct(string $basePath)
     {
-        $this->file = $basePath . 'logs/wpdm.log';
+        $logsDir = $basePath . 'logs';
+        $this->file = $logsDir . '/wpdm.log';
         
-        if (!file_exists($basePath . 'logs')) {
-            mkdir($basePath . 'logs', 0755, true);
+        if (!is_dir($logsDir) && !mkdir($logsDir, 0755, true) && !is_dir($logsDir)) {
+            throw new \RuntimeException(sprintf('Failed to create logs directory "%s"', $logsDir));
         }
     }
 
