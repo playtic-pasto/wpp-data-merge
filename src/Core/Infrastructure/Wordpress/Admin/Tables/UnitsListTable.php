@@ -39,7 +39,7 @@ class UnitsListTable extends \WP_List_Table
             'screen' => 'wpdm-projects',
         ]);
 
-        $this->source         = $items;
+        $this->source = $items;
         $this->projectOptions = $projectOptions;
     }
 
@@ -52,6 +52,7 @@ class UnitsListTable extends \WP_List_Table
             'cb' => '<input type="checkbox" />',
             'nombre' => 'Unidad',
             'proyecto' => 'Proyecto',
+            '_sync_status' => 'Sincronización',
             'tipoUnidad' => 'Tipo',
             'tipoInmueble' => 'Inmueble',
             'estado' => 'Estado',
@@ -71,6 +72,7 @@ class UnitsListTable extends \WP_List_Table
         return [
             'nombre' => ['nombre', false],
             'proyecto' => ['proyecto', false],
+            '_sync_status' => ['_sync_status', false],
             'tipoUnidad' => ['tipoUnidad', false],
             'estado' => ['estado', false],
             'valor' => ['valor', true],
@@ -87,6 +89,7 @@ class UnitsListTable extends \WP_List_Table
     public function get_bulk_actions(): array
     {
         return [
+            'sync' => 'Sincronizar',
             'refresh_cache' => 'Refrescar caché SINCO',
         ];
     }
@@ -118,8 +121,73 @@ class UnitsListTable extends \WP_List_Table
 
     protected function column_nombre($item): string
     {
+        $unitId = (int) ($item['id'] ?? 0);
+        $syncStatus = (string) ($item['_sync_status'] ?? '');
+
+        $actions = [
+            'id' => '<span>ID ' . esc_html((string) $unitId) . '</span>',
+        ];
+
+        if ($syncStatus !== 'active') {
+            $syncUrl = wp_nonce_url(
+                add_query_arg([
+                    'page' => 'wpdm-projects',
+                    'action' => 'sync_unit',
+                    'unit' => $unitId,
+                ], admin_url('admin.php')),
+                'wpdm_sync_unit_' . $unitId
+            );
+
+            $label = $syncStatus === 'error' ? 'Reintentar' : 'Sincronizar';
+
+            $actions['sync'] = sprintf(
+                '<a href="%s" class="wpdm-sync-unit" data-unit="%s" data-name="%s">%s</a>',
+                esc_url($syncUrl),
+                esc_attr((string) $unitId),
+                esc_attr((string) ($item['nombre'] ?? '')),
+                esc_html($label)
+            );
+        }
+
         return '<strong>' . esc_html((string) ($item['nombre'] ?? '')) . '</strong>'
-            . '<div class="row-actions"><span>ID ' . esc_html((string) ($item['id'] ?? '')) . '</span></div>';
+            . $this->row_actions($actions, true);
+    }
+
+    protected function column__sync_status($item): string
+    {
+        $status = (string) ($item['_sync_status'] ?? '');
+        $syncedAt = (string) ($item['_synced_at'] ?? '');
+        $error = (string) ($item['_last_error'] ?? '');
+
+        [$label, $bg, $fg] = match ($status) {
+            'active' => ['Sincronizado', '#d1fae5', '#065f46'],
+            'pending' => ['Pendiente', '#fef3c7', '#92400e'],
+            'error' => ['Error', '#fee2e2', '#991b1b'],
+            default => ['Sin sincronizar', '#e5e7eb', '#374151'],
+        };
+
+        $badge = sprintf(
+            '<span style="display:inline-block;padding:2px 10px;border-radius:10px;background:%s;color:%s;font-weight:600;font-size:11px;line-height:18px;white-space: nowrap;">%s</span>',
+            esc_attr($bg),
+            esc_attr($fg),
+            esc_html($label)
+        );
+
+        $meta = '';
+        if ($syncedAt !== '') {
+            $ts = strtotime($syncedAt);
+            $meta = '<div style="color:#646970;font-size:11px;margin-top:4px;">Última: '
+                . esc_html($ts ? date_i18n('Y-m-d H:i', $ts) : $syncedAt)
+                . '</div>';
+        }
+
+        if ($status === 'error' && $error !== '') {
+            $meta .= '<div style="color:#991b1b;font-size:11px;margin-top:2px;" title="' . esc_attr($error) . '">'
+                . esc_html(mb_strimwidth($error, 0, 60, '…'))
+                . '</div>';
+        }
+
+        return $badge . $meta;
     }
 
     protected function extra_tablenav($which): void
@@ -133,8 +201,8 @@ class UnitsListTable extends \WP_List_Table
         <div class="alignleft actions">
             <label for="filter-by-proyecto" class="screen-reader-text">Filtrar por proyecto</label>
             <select name="proyecto" id="filter-by-proyecto">
-                <option value="0"<?php selected($selected, 0); ?>>Todos los proyectos</option>
-                <?php foreach ($this->projectOptions as $opt) : ?>
+                <option value="0" <?php selected($selected, 0); ?>>Todos los proyectos</option>
+                <?php foreach ($this->projectOptions as $opt): ?>
                     <option value="<?php echo esc_attr((string) $opt['id']); ?>" <?php selected($selected, $opt['id']); ?>>
                         <?php echo esc_html($opt['label']); ?>
                     </option>
