@@ -6,10 +6,11 @@ namespace WPDM\Core\Infrastructure\WordPress\Admin\Pages;
 
 use WPDM\Core\Domain\Projects\ProjectsRepository;
 use WPDM\Core\Infrastructure\Api\SincoApiClient;
+use WPDM\Core\Infrastructure\WordPress\Admin\Tables\UnitsListTable;
 
 /**
- * Renderiza la página de proyectos listando las unidades obtenidas desde SINCO
- * para cada proyecto asociado al CPT "proyecto".
+ * Renderiza la página de proyectos con la tabla nativa de WordPress (WP_List_Table)
+ * listando todas las unidades obtenidas desde SINCO.
  *
  * @name ProjectsPage
  * @package WPDM\Core\Infrastructure\WordPress\Admin\Pages
@@ -33,8 +34,10 @@ class ProjectsPage
 
     public function render(): void
     {
+        $this->handleBulkActions();
+
         $projects = $this->repository->all();
-        $groups   = [];
+        $items    = [];
         $errors   = [];
 
         foreach ($projects as $project) {
@@ -49,16 +52,20 @@ class ProjectsPage
                         $idProyecto,
                         $units->get_error_message()
                     );
-                    $units = [];
+                    continue;
                 }
 
-                $groups[] = [
-                    'project'      => $project,
-                    'id_proyecto'  => $idProyecto,
-                    'units'        => $units,
-                ];
+                foreach ($units as $unit) {
+                    $unit['proyecto']        = $project['title'];
+                    $unit['id_macroproject'] = $project['id_macroproject'];
+                    $unit['id_proyecto_wp']  = $project['post_id'];
+                    $items[] = $unit;
+                }
             }
         }
+
+        $table = new UnitsListTable($items);
+        $table->prepare_items();
 
         include WPDM_PATH . 'templates/admin/projects.php';
     }
@@ -81,5 +88,25 @@ class ProjectsPage
 
         set_transient($cacheKey, $units, self::CACHE_TTL);
         return $units;
+    }
+
+    private function handleBulkActions(): void
+    {
+        if (!current_user_can('manage_options')) {
+            return;
+        }
+
+        $action = $_REQUEST['action'] ?? $_REQUEST['action2'] ?? '';
+        if ($action !== 'refresh_cache') {
+            return;
+        }
+
+        check_admin_referer('bulk-unidades');
+
+        foreach ($this->repository->all() as $project) {
+            foreach ($project['id_proyectos'] as $idProyecto) {
+                delete_transient(self::CACHE_PREFIX . $idProyecto);
+            }
+        }
     }
 }
