@@ -36,12 +36,17 @@ class ProjectsPage
     {
         $this->handleBulkActions();
 
-        $projects = $this->repository->all();
-        $items    = [];
-        $errors   = [];
+        $projects       = $this->repository->all();
+        $items          = [];
+        $errors         = [];
+        $projectOptions = [];
 
         foreach ($projects as $project) {
             foreach ($project['id_proyectos'] as $idProyecto) {
+                $projectOptions[] = [
+                    'id'    => $idProyecto,
+                    'label' => sprintf('%s — ID %d', $project['title'], $idProyecto),
+                ];
                 $units = $this->fetchUnits($idProyecto);
 
                 if (is_wp_error($units)) {
@@ -64,7 +69,7 @@ class ProjectsPage
             }
         }
 
-        $table = new UnitsListTable($items);
+        $table = new UnitsListTable($items, $projectOptions);
         $table->prepare_items();
 
         include WPDM_PATH . 'templates/admin/projects.php';

@@ -21,12 +21,16 @@ class UnitsListTable extends \WP_List_Table
     /** @var array<int, array<string, mixed>> */
     private array $source;
 
+    /** @var array<int, array{id: int, label: string}> */
+    private array $projectOptions;
+
     private int $perPage = 20;
 
     /**
      * @param array<int, array<string, mixed>> $items Unidades normalizadas con columnas planas.
+     * @param array<int, array{id: int, label: string}> $projectOptions Opciones para el filtro de proyecto.
      */
-    public function __construct(array $items = [])
+    public function __construct(array $items = [], array $projectOptions = [])
     {
         parent::__construct([
             'singular' => 'unidad',
@@ -35,7 +39,8 @@ class UnitsListTable extends \WP_List_Table
             'screen' => 'wpdm-projects',
         ]);
 
-        $this->source = $items;
+        $this->source         = $items;
+        $this->projectOptions = $projectOptions;
     }
 
     /**
@@ -117,6 +122,29 @@ class UnitsListTable extends \WP_List_Table
             . '<div class="row-actions"><span>ID ' . esc_html((string) ($item['id'] ?? '')) . '</span></div>';
     }
 
+    protected function extra_tablenav($which): void
+    {
+        if ($which !== 'top' || empty($this->projectOptions)) {
+            return;
+        }
+
+        $selected = isset($_REQUEST['proyecto']) ? (int) $_REQUEST['proyecto'] : 0;
+        ?>
+        <div class="alignleft actions">
+            <label for="filter-by-proyecto" class="screen-reader-text">Filtrar por proyecto</label>
+            <select name="proyecto" id="filter-by-proyecto">
+                <option value="0"<?php selected($selected, 0); ?>>Todos los proyectos</option>
+                <?php foreach ($this->projectOptions as $opt) : ?>
+                    <option value="<?php echo esc_attr((string) $opt['id']); ?>" <?php selected($selected, $opt['id']); ?>>
+                        <?php echo esc_html($opt['label']); ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+            <?php submit_button('Filtrar', 'secondary', 'filter_action', false); ?>
+        </div>
+        <?php
+    }
+
     public function no_items(): void
     {
         esc_html_e('No hay unidades para mostrar. Verifica la configuración de los proyectos y la conexión API.', 'wpdm');
@@ -127,6 +155,13 @@ class UnitsListTable extends \WP_List_Table
         $this->_column_headers = [$this->get_columns(), [], $this->get_sortable_columns(), 'nombre'];
 
         $items = $this->source;
+
+        $projectFilter = isset($_REQUEST['proyecto']) ? (int) $_REQUEST['proyecto'] : 0;
+        if ($projectFilter > 0) {
+            $items = array_values(array_filter($items, static function ($row) use ($projectFilter) {
+                return (int) ($row['idProyecto'] ?? 0) === $projectFilter;
+            }));
+        }
 
         $search = isset($_REQUEST['s']) ? trim((string) wp_unslash($_REQUEST['s'])) : '';
         if ($search !== '') {
