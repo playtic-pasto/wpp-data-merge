@@ -1,37 +1,74 @@
 <?php
 if (!defined('ABSPATH')) exit;
+
+/** @var \WPDM\Core\Infrastructure\WordPress\Admin\Tables\UnitsListTable $table */
+/** @var string[] $errors */
+/** @var array{type:string,message:string}|false $notice */
 ?>
 <div class="wrap wpdm-wrap">
-    <h1>Proyectos</h1>
-    <p>Listado de proyectos sincronizados desde el ERP SINCO.</p>
+    <h1 class="wp-heading-inline">Proyectos</h1>
+    <hr class="wp-header-end">
 
-    <div class="wpdm-section">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-            <h2 style="margin: 0; border: none; padding: 0;">Proyectos sincronizados</h2>
-            <button type="button" class="button button-primary" disabled>Sincronizar ahora</button>
+    <p>Unidades obtenidas desde el ERP SINCO para cada proyecto configurado.</p>
+
+    <?php if (!empty($notice) && is_array($notice)) :
+        $cls = match ($notice['type'] ?? '') {
+            'success' => 'notice-success',
+            'warning' => 'notice-warning',
+            default   => 'notice-error',
+        };
+    ?>
+        <div class="notice <?php echo esc_attr($cls); ?> is-dismissible">
+            <p><?php echo esc_html($notice['message']); ?></p>
         </div>
+    <?php endif; ?>
 
-        <table class="widefat striped">
-            <thead>
-                <tr>
-                    <th>ID Externo</th>
-                    <th>Nombre del proyecto</th>
-                    <th>Estado</th>
-                    <th>Última actualización</th>
-                    <th>Post WP</th>
-                    <th>Acciones</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td colspan="6" style="text-align: center; padding: 30px; color: #646970;">
-                        No hay proyectos sincronizados.<br>
-                        Configura la <a href="<?php echo esc_url(admin_url('admin.php?page=wpdm-settings')); ?>">conexión API</a>
-                        y activa el <a href="<?php echo esc_url(admin_url('admin.php?page=wpdm-cron')); ?>">Cron Job</a>
-                        para comenzar la sincronización.
-                    </td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
+    <?php if (!empty($errors)) : ?>
+        <div class="notice notice-error">
+            <p><strong>Errores al consultar SINCO:</strong></p>
+            <ul style="list-style: disc; margin-left: 20px;">
+                <?php foreach ($errors as $msg) : ?>
+                    <li><?php echo esc_html($msg); ?></li>
+                <?php endforeach; ?>
+            </ul>
+        </div>
+    <?php endif; ?>
+
+    <form method="get" id="wpdm-units-form">
+        <input type="hidden" name="page" value="wpdm-projects" />
+        <?php
+        $table->search_box('Buscar unidades', 'wpdm-unit');
+        $table->display();
+        ?>
+    </form>
 </div>
+
+<script>
+(function () {
+    document.addEventListener('click', function (e) {
+        var a = e.target.closest('a.wpdm-sync-unit');
+        if (!a) return;
+        var name = a.dataset.name || ('ID ' + a.dataset.unit);
+        if (!window.confirm('¿Sincronizar la unidad "' + name + '" con los datos actuales de SINCO?')) {
+            e.preventDefault();
+        }
+    });
+
+    var form = document.getElementById('wpdm-units-form');
+    if (form) {
+        form.addEventListener('submit', function (e) {
+            var topAction = form.querySelector('select[name="action"]');
+            var botAction = form.querySelector('select[name="action2"]');
+            var action = (topAction && topAction.value !== '-1' ? topAction.value : '')
+                      || (botAction && botAction.value !== '-1' ? botAction.value : '');
+            if (action === 'sync') {
+                var count = form.querySelectorAll('input[name="unit[]"]:checked').length;
+                if (count === 0) return;
+                if (!window.confirm('¿Sincronizar ' + count + ' unidad(es) seleccionada(s)?')) {
+                    e.preventDefault();
+                }
+            }
+        });
+    }
+})();
+</script>

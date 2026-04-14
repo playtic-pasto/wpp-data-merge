@@ -20,6 +20,11 @@ use WPDM\Core\Infrastructure\WordPress\Cron\CronScheduler;
 use WPDM\Core\Infrastructure\WordPress\Api\Api;
 use WPDM\Core\Infrastructure\WordPress\Controllers\SettingsController;
 use WPDM\Core\Infrastructure\WordPress\Controllers\ConnectionTestController;
+use WPDM\Core\Infrastructure\Api\SincoApiClient;
+use WPDM\Core\Domain\Projects\ProjectsRepository;
+use WPDM\Core\Domain\Sync\SyncRepository;
+use WPDM\Core\Domain\Sync\SyncService;
+use WPDM\Core\Infrastructure\WordPress\Admin\Pages\ProjectsPage;
 
 /**
  * Permite inicializar el plugin WP Data Merge, registrando los hooks necesarios para su funcionamiento en WordPress.
@@ -133,8 +138,50 @@ final class Plugin
             );
         });
 
-        self::$container->bind(Menu::class, function () {
-            return new Menu();
+        // Projects
+        self::$container->bind(SincoApiClient::class, function (Container $c) {
+            return new SincoApiClient(
+                $c->get(HttpApiClient::class),
+                $c->get(WPDM_AuthService::class),
+                $c->get(WPDM_Logger::class),
+                $c->get(CredentialLoader::class)
+            );
+        });
+
+        self::$container->bind(ProjectsRepository::class, function () {
+            return new ProjectsRepository();
+        });
+
+        self::$container->bind(SyncRepository::class, function () {
+            return new SyncRepository();
+        });
+
+        self::$container->bind(SyncService::class, function (Container $c) {
+            return new SyncService(
+                $c->get(SincoApiClient::class),
+                $c->get(SyncRepository::class),
+                $c->get(ProjectsRepository::class),
+                $c->get(WPDM_Logger::class)
+            );
+        });
+
+        self::$container->bind(ProjectsPage::class, function (Container $c) {
+            return new ProjectsPage(
+                $c->get(ProjectsRepository::class),
+                $c->get(SincoApiClient::class),
+                $c->get(SyncService::class),
+                $c->get(SyncRepository::class)
+            );
+        });
+
+        self::$container->bind(Menu::class, function (Container $c) {
+            return new Menu(
+                null,
+                null,
+                null,
+                $c->get(ProjectsPage::class),
+                null
+            );
         });
 
         self::$container->bind(Actions::class, function () {
