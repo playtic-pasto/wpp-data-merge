@@ -35,6 +35,25 @@ class HttpApiClient
     }
 
     /**
+     * Envía una petición GET HTTP con los headers especificados.
+     *
+     * @param string $url La URL del endpoint.
+     * @param array<string, string> $headers Headers HTTP adicionales.
+     * @param int $timeout Timeout en segundos.
+     * @return array<string, mixed>|\WP_Error
+     */
+    public function get(string $url, array $headers = [], int $timeout = 30): array|\WP_Error
+    {
+        $defaultHeaders = ['Accept' => 'application/json'];
+        $mergedHeaders = array_merge($defaultHeaders, $headers);
+
+        return wp_remote_get($url, [
+            'headers' => $mergedHeaders,
+            'timeout' => $timeout,
+        ]);
+    }
+
+    /**
      * Obtiene el código de respuesta HTTP de una respuesta.
      * 
      * @param array<string, mixed> $response

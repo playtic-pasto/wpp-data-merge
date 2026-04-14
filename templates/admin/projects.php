@@ -1,37 +1,90 @@
 <?php
 if (!defined('ABSPATH')) exit;
+
+/** @var array<int, array{project: array{post_id:int,title:string,id_macroproject:string,id_proyectos:int[]}, id_proyecto:int, units: array<int, array<string,mixed>>}> $groups */
+/** @var string[] $errors */
+
+$columns = [
+    'id'             => 'ID',
+    'nombre'         => 'Nombre',
+    'tipoUnidad'     => 'Tipo unidad',
+    'tipoInmueble'   => 'Tipo inmueble',
+    'estado'         => 'Estado',
+    'valor'          => 'Valor',
+    'areaPrivada'    => 'Área privada',
+    'areaConstruida' => 'Área construida',
+    'numeroPiso'     => 'Piso',
+    'fechaEntrega'   => 'Entrega',
+];
 ?>
 <div class="wrap wpdm-wrap">
     <h1>Proyectos</h1>
-    <p>Listado de proyectos sincronizados desde el ERP SINCO.</p>
+    <p>Listado de unidades obtenidas desde el ERP SINCO para cada proyecto configurado.</p>
 
-    <div class="wpdm-section">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-            <h2 style="margin: 0; border: none; padding: 0;">Proyectos sincronizados</h2>
-            <button type="button" class="button button-primary" disabled>Sincronizar ahora</button>
+    <?php if (!empty($errors)) : ?>
+        <div class="notice notice-error">
+            <p><strong>Se encontraron errores al consultar SINCO:</strong></p>
+            <ul style="list-style: disc; margin-left: 20px;">
+                <?php foreach ($errors as $msg) : ?>
+                    <li><?php echo esc_html($msg); ?></li>
+                <?php endforeach; ?>
+            </ul>
         </div>
+    <?php endif; ?>
 
-        <table class="widefat striped">
-            <thead>
-                <tr>
-                    <th>ID Externo</th>
-                    <th>Nombre del proyecto</th>
-                    <th>Estado</th>
-                    <th>Última actualización</th>
-                    <th>Post WP</th>
-                    <th>Acciones</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td colspan="6" style="text-align: center; padding: 30px; color: #646970;">
-                        No hay proyectos sincronizados.<br>
-                        Configura la <a href="<?php echo esc_url(admin_url('admin.php?page=wpdm-settings')); ?>">conexión API</a>
-                        y activa el <a href="<?php echo esc_url(admin_url('admin.php?page=wpdm-cron')); ?>">Cron Job</a>
-                        para comenzar la sincronización.
-                    </td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
+    <?php if (empty($groups)) : ?>
+        <div class="wpdm-section">
+            <p>No hay proyectos configurados. Crea entradas en el tipo de contenido <strong>Proyecto</strong> y completa los campos ACF <code>id_macroproject</code> e <code>id_proyecto</code>.</p>
+            <p>Verifica también la <a href="<?php echo esc_url(admin_url('admin.php?page=wpdm-settings')); ?>">conexión API</a>.</p>
+        </div>
+    <?php else : ?>
+        <?php foreach ($groups as $group) :
+            $project = $group['project'];
+            $units   = $group['units'];
+        ?>
+            <div class="wpdm-section" style="margin-bottom: 30px;">
+                <h2 style="margin-top: 0;">
+                    <?php echo esc_html($project['title']); ?>
+                    <span style="font-weight: 400; color: #646970;">
+                        — Macroproyecto <?php echo esc_html($project['id_macroproject']); ?>
+                        / Proyecto <?php echo (int) $group['id_proyecto']; ?>
+                        (<?php echo count($units); ?> unidades)
+                    </span>
+                </h2>
+
+                <?php if (empty($units)) : ?>
+                    <p style="color: #646970;">Sin unidades para mostrar.</p>
+                <?php else : ?>
+                    <table class="widefat striped">
+                        <thead>
+                            <tr>
+                                <?php foreach ($columns as $label) : ?>
+                                    <th><?php echo esc_html($label); ?></th>
+                                <?php endforeach; ?>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($units as $unit) : ?>
+                                <tr>
+                                    <?php foreach ($columns as $key => $label) :
+                                        $value = $unit[$key] ?? '';
+                                        if ($key === 'valor' && is_numeric($value)) {
+                                            $value = '$' . number_format((float) $value, 0, ',', '.');
+                                        } elseif ($key === 'fechaEntrega' && !empty($value)) {
+                                            $ts = strtotime((string) $value);
+                                            $value = $ts ? date_i18n('Y-m-d', $ts) : $value;
+                                        } elseif (is_bool($value)) {
+                                            $value = $value ? 'Sí' : 'No';
+                                        }
+                                    ?>
+                                        <td><?php echo esc_html((string) $value); ?></td>
+                                    <?php endforeach; ?>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                <?php endif; ?>
+            </div>
+        <?php endforeach; ?>
+    <?php endif; ?>
 </div>

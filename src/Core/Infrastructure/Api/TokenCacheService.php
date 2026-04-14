@@ -7,60 +7,62 @@ namespace WPDM\Core\Infrastructure\Api;
 use WPDM\Core\Domain\Auth\AuthToken;
 
 /**
- * Servicio responsable de gestionar el cache de tokens de autenticación usando transients de WordPress.
- * 
+ * Servicio responsable de persistir el token de autenticación en wp_options, permitiendo
+ * reutilizarlo entre peticiones hasta que expire.
+ *
  * @name TokenCacheService
  * @package WPDM\Core\Infrastructure\Api
  * @since 1.0.0
  */
 class TokenCacheService
 {
-    private const TRANSIENT_TOKEN = 'wpdm_access_token';
-    private const TRANSIENT_AUTH  = 'wpdm_authorization_token';
-    private const MARGIN_SECONDS  = 300; // renovar 5 min antes de expirar
+    private const OPTION_KEY     = 'wpdm_auth_token';
+    private const MARGIN_SECONDS = 300;
 
     /**
-     * Obtiene el token almacenado en cache si existe y aún es válido.
-     * 
-     * @return AuthToken|null
+     * Devuelve el token persistido si todavía es válido.
      */
     public function getCachedToken(): ?AuthToken
     {
-        $cached = get_transient(self::TRANSIENT_TOKEN);
-        
-        if ($cached === false) {
+        $stored = get_option(self::OPTION_KEY, null);
+
+        if (!is_array($stored) || empty($stored['access_token'])) {
             return null;
         }
 
-        return AuthToken::fromArray($cached);
+        $expiresAt = (int) ($stored['expires_at'] ?? 0);
+        if ($expiresAt > 0 && $expiresAt <= (time() + self::MARGIN_SECONDS)) {
+            return null;
+        }
+
+        return AuthToken::fromArray($stored);
     }
 
     /**
-     * Almacena un token en cache con TTL basado en su tiempo de expiración.
-     * 
+     * Persiste el token en wp_options con un timestamp absoluto de expiración.
+     *
      * @param AuthToken $token
-     * @param string|null $authorizationToken Token de autorización adicional (opcional).
-     * @return void
+     * @param string|null $authorizationToken Token adicional que devuelve SINCO (opcional).
      */
     public function cacheToken(AuthToken $token, ?string $authorizationToken = null): void
     {
-        $ttl = max($token->expiresIn - self::MARGIN_SECONDS, 60);
+        $payload = $token->toArray();
 
-        set_transient(self::TRANSIENT_TOKEN, $token->toArray(), $ttl);
-        
-        if ($authorizationToken !== null) {
-            set_transient(self::TRANSIENT_AUTH, $authorizationToken, $ttl);
+        if ($authorizationToken !== null && $authorizationToken !== '') {
+            $payload['authorization_token'] = $authorizationToken;
         }
+
+        $payload['expires_at'] = time() + max((int) $token->expiresIn, 0);
+        $payload['cached_at']  = time();
+
+        update_option(self::OPTION_KEY, $payload, false);
     }
 
     /**
-     * Invalida el token almacenado en cache, forzando que la próxima solicitud genere uno nuevo.
-     * 
-     * @return void
+     * Elimina el token persistido, forzando la obtención de uno nuevo.
      */
     public function invalidateToken(): void
     {
-        delete_transient(self::TRANSIENT_TOKEN);
-        delete_transient(self::TRANSIENT_AUTH);
+        delete_option(self::OPTION_KEY);
     }
 }
