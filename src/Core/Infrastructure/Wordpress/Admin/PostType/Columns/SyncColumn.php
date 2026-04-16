@@ -86,7 +86,7 @@ class SyncColumn
         if ($this->credentials->loadCredentials() === null)
             return $actions;
 
-        $url = SyncUrlBuilder::build($post->ID, \get_edit_post_link($post->ID, ''));
+        $url = SyncUrlBuilder::build($post->ID, \admin_url('edit.php?post_type=' . self::POST_TYPE));
         $actions['wpdm_sync'] = \sprintf(
             '<a href="%s" class="wpdm-sync-project" data-title="%s">Sincronizar</a>',
             \esc_url($url),

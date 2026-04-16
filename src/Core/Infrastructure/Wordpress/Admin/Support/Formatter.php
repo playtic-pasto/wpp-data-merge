@@ -28,6 +28,16 @@ class Formatter
     }
 
     /**
+     * Formatea un timestamp Unix (UTC) en la zona horaria de WordPress.
+     * Úsalo cuando ya tienes un timestamp (wp_next_scheduled, time(), etc.).
+     */
+    public static function timestamp(?int $ts, string $format = 'Y-m-d H:i'): string
+    {
+        if ($ts === null || $ts <= 0) return '—';
+        return \function_exists('wp_date') ? \wp_date($format, $ts) : \date_i18n($format, $ts);
+    }
+
+    /**
      * Formatea una fecha respetando la zona horaria configurada en WordPress.
      * Usa DateTimeImmutable + DateTimeZone para garantizar una conversión
      * correcta (WP_TIMEZONE_STRING o Settings > General).
