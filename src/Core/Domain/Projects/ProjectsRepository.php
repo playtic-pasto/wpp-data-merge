@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace WPDM\Core\Domain\Projects;
 
 /**
- * Repositorio que lee los proyectos registrados como CPT "proyecto" junto con los
- * campos ACF id_macroproject e id_proyecto (CSV).
+ * Lee los proyectos del CPT "proyecto" con sus campos ACF id_macroproject
+ * (único) e id_proyecto (CSV de ids SINCO).
  *
  * @name ProjectsRepository
  * @package WPDM\Core\Domain\Projects
@@ -14,11 +14,9 @@ namespace WPDM\Core\Domain\Projects;
  */
 class ProjectsRepository
 {
-    private const POST_TYPE = 'proyecto';
+    public const POST_TYPE = 'proyecto';
 
     /**
-     * Devuelve las entradas del CPT proyecto con sus IDs SINCO parseados.
-     *
      * @return array<int, array{post_id:int, title:string, id_macroproject:string, id_proyectos:int[]}>
      */
     public function all(): array
@@ -31,24 +29,39 @@ class ProjectsRepository
             'order'          => 'ASC',
         ]);
 
-        $items = [];
-        foreach ($posts as $post) {
-            $idMacro   = (string) (function_exists('get_field') ? get_field('id_macroproject', $post->ID) : get_post_meta($post->ID, 'id_macroproject', true));
-            $idProyRaw = (string) (function_exists('get_field') ? get_field('id_proyecto', $post->ID) : get_post_meta($post->ID, 'id_proyecto', true));
+        return array_map([$this, 'mapPost'], $posts);
+    }
 
-            $ids = array_values(array_filter(array_map(
-                static fn($v) => (int) trim((string) $v),
-                explode(',', $idProyRaw)
-            )));
-
-            $items[] = [
-                'post_id'         => (int) $post->ID,
-                'title'           => get_the_title($post) ?: '(sin título)',
-                'id_macroproject' => $idMacro,
-                'id_proyectos'    => $ids,
-            ];
+    /**
+     * @return array{post_id:int, title:string, id_macroproject:string, id_proyectos:int[]}|null
+     */
+    public function find(int $postId): ?array
+    {
+        $post = get_post($postId);
+        if (!$post || $post->post_type !== self::POST_TYPE) {
+            return null;
         }
+        return $this->mapPost($post);
+    }
 
-        return $items;
+    /**
+     * @return array{post_id:int, title:string, id_macroproject:string, id_proyectos:int[]}
+     */
+    private function mapPost(\WP_Post $post): array
+    {
+        $idMacro   = (string) (\function_exists('get_field') ? get_field('id_macroproject', $post->ID) : get_post_meta($post->ID, 'id_macroproject', true));
+        $idProyRaw = (string) (\function_exists('get_field') ? get_field('id_proyecto', $post->ID) : get_post_meta($post->ID, 'id_proyecto', true));
+
+        $ids = array_values(array_filter(array_map(
+            static fn($v) => (int) trim((string) $v),
+            explode(',', $idProyRaw)
+        )));
+
+        return [
+            'post_id'         => (int) $post->ID,
+            'title'           => get_the_title($post) ?: '(sin título)',
+            'id_macroproject' => $idMacro,
+            'id_proyectos'    => $ids,
+        ];
     }
 }
