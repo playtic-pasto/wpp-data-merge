@@ -142,6 +142,47 @@ class ProjectSyncService
     }
 
     /**
+     * Sincroniza todos los posts del CPT proyecto que no estén pausados.
+     * Este es el punto de entrada que usará el cron job.
+     *
+     * Un proyecto se salta si su _wpdm_sync_status es 'pending' (el usuario
+     * lo pausó manualmente). Los que estén en 'error' sí se reintentan.
+     *
+     * @return array{processed:int, succeeded:int, failed:int, skipped:int, details:list<array{post_id:int,title:string,result:array<string,mixed>}>}
+     */
+    public function syncAllActive(): array
+    {
+        $report = ['processed' => 0, 'succeeded' => 0, 'failed' => 0, 'skipped' => 0, 'details' => []];
+
+        foreach ($this->projects->all() as $project) {
+            $status = (string) \get_post_meta($project['post_id'], self::META_SYNC_STATUS, true);
+            if ($status === WPDM_Database::SYNC_STATUS_PENDING) {
+                $report['skipped']++;
+                continue;
+            }
+
+            $result = $this->syncPost($project['post_id']);
+            $report['processed']++;
+            $report[$result['success'] ? 'succeeded' : 'failed']++;
+            $report['details'][] = [
+                'post_id' => $project['post_id'],
+                'title'   => $project['title'],
+                'result'  => $result,
+            ];
+        }
+
+        $this->logger->info(\sprintf(
+            'SyncAll: %d procesados (%d ok, %d error, %d saltados)',
+            $report['processed'],
+            $report['succeeded'],
+            $report['failed'],
+            $report['skipped']
+        ));
+
+        return $report;
+    }
+
+    /**
      * Decodifica el resumen consolidado guardado como JSON en post_meta.
      *
      * @return array<string, mixed>

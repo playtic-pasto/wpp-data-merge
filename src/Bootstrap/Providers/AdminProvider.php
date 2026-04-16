@@ -5,9 +5,14 @@ declare(strict_types=1);
 namespace WPDM\Bootstrap\Providers;
 
 use WPDM\Bootstrap\ServiceProvider;
+use WPDM\Core\Domain\Projects\ProjectsRepository;
 use WPDM\Core\Domain\Sync\ProjectSyncService;
 use WPDM\Core\Infrastructure\Api\CredentialLoader;
 use WPDM\Core\Infrastructure\WordPress\Admin\Menu;
+use WPDM\Core\Infrastructure\WordPress\Admin\Pages\CronPage;
+use WPDM\Core\Infrastructure\WordPress\Cron\CronHistory;
+use WPDM\Core\Infrastructure\WordPress\Cron\CronScheduler;
+use WPDM\Core\Infrastructure\WordPress\Cron\CronSettings;
 use WPDM\Core\Infrastructure\WordPress\Admin\PostType\Columns\SyncColumn;
 use WPDM\Core\Infrastructure\WordPress\Admin\PostType\Controllers\SyncController;
 use WPDM\Core\Infrastructure\WordPress\Admin\PostType\MetaBoxes\DataMetaBox;
@@ -29,7 +34,19 @@ class AdminProvider implements ServiceProvider
 {
     public function register(Container $c): void
     {
-        $c->bind(Menu::class, fn() => new Menu());
+        $c->bind(CronPage::class, fn(Container $c) => new CronPage(
+            $c->get(CronSettings::class),
+            $c->get(CronScheduler::class),
+            $c->get(CronHistory::class),
+            $c->get(ProjectsRepository::class)
+        ));
+
+        $c->bind(Menu::class, fn(Container $c) => new Menu(
+            null,
+            null,
+            $c->get(CronPage::class),
+            null
+        ));
         $c->bind(Actions::class, fn() => new Actions());
         $c->bind(Resources::class, fn() => new Resources());
 
