@@ -23,23 +23,23 @@ use WPDM\Shared\Logger\WPDM_Logger;
  */
 class SincoProvider implements ServiceProvider
 {
-    public function register(Container $c): void
+    public function register(Container $container): void
     {
-        $c->bind(SincoApiClient::class, fn(Container $c) => new SincoApiClient(
-            $c->get(HttpApiClient::class),
-            $c->get(WPDM_AuthService::class),
-            $c->get(WPDM_Logger::class),
-            $c->get(CredentialLoader::class)
+        $container->bind(SincoApiClient::class, fn(Container $container) => new SincoApiClient(
+            $container->get(HttpApiClient::class),
+            $container->get(WPDM_AuthService::class),
+            $container->get(WPDM_Logger::class),
+            $container->get(CredentialLoader::class)
         ));
 
-        $c->bind(ProjectsRepository::class, fn() => new ProjectsRepository());
+        $container->bind(ProjectsRepository::class, fn() => new ProjectsRepository());
 
-        $c->bind(ProjectSyncService::class, fn(Container $c) => new ProjectSyncService(
-            $c->get(SincoApiClient::class),
-            $c->get(ProjectsRepository::class),
-            $c->get(WPDM_Logger::class)
+        $container->bind(ProjectSyncService::class, fn(Container $container) => new ProjectSyncService(
+            $container->get(SincoApiClient::class),
+            $container->get(ProjectsRepository::class),
+            $container->get(WPDM_Logger::class)
         ));
     }
 
-    public function boot(Container $c): void {}
+    public function boot(Container $container): void {}
 }

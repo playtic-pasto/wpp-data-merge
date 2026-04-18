@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace WPDM\Bootstrap;
 
+use WPDM\Bootstrap\Providers\AcfProvider;
 use WPDM\Bootstrap\Providers\AdminProvider;
 use WPDM\Bootstrap\Providers\ApiProvider;
 use WPDM\Bootstrap\Providers\AuthProvider;
@@ -59,6 +60,7 @@ final class Plugin
             new AuthProvider(),
             new ApiProvider(),
             new SincoProvider(),
+            new AcfProvider(),
             new AdminProvider(),
             new CronProvider(),
         ];

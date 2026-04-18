@@ -18,11 +18,11 @@ use WPDM\Shared\Logger\WPDM_Logger;
  */
 class SharedProvider implements ServiceProvider
 {
-    public function register(Container $c): void
+    public function register(Container $container): void
     {
-        $c->bind(WPDM_Logger::class, fn() => new WPDM_Logger(WPDM_PATH));
-        $c->bind(WPDM_Encryption::class, fn() => new WPDM_Encryption());
+        $container->bind(WPDM_Logger::class, fn() => new WPDM_Logger(WPDM_PATH));
+        $container->bind(WPDM_Encryption::class, fn() => new WPDM_Encryption());
     }
 
-    public function boot(Container $c): void {}
+    public function boot(Container $container): void {}
 }

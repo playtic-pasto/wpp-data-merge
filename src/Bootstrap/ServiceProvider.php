@@ -19,11 +19,11 @@ interface ServiceProvider
     /**
      * Declara los bindings del provider en el contenedor.
      */
-    public function register(Container $c): void;
+    public function register(Container $container): void;
 
     /**
      * Resuelve los servicios que deben enlazarse con hooks de WordPress.
      * Se invoca después de que todos los providers hayan registrado.
      */
-    public function boot(Container $c): void;
+    public function boot(Container $container): void;
 }
