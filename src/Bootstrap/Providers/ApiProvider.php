@@ -22,26 +22,26 @@ use WPDM\Shared\Logger\WPDM_Logger;
  */
 class ApiProvider implements ServiceProvider
 {
-    public function register(Container $c): void
+    public function register(Container $container): void
     {
-        $c->bind(SettingsController::class, fn(Container $c) => new SettingsController(
-            $c->get(WPDM_Encryption::class),
-            $c->get(WPDM_Logger::class),
-            $c->get(WPDM_AuthService::class)
+        $container->bind(SettingsController::class, fn(Container $container) => new SettingsController(
+            $container->get(WPDM_Encryption::class),
+            $container->get(WPDM_Logger::class),
+            $container->get(WPDM_AuthService::class)
         ));
 
-        $c->bind(ConnectionTestController::class, fn(Container $c) => new ConnectionTestController(
-            $c->get(WPDM_AuthService::class)
+        $container->bind(ConnectionTestController::class, fn(Container $container) => new ConnectionTestController(
+            $container->get(WPDM_AuthService::class)
         ));
 
-        $c->bind(Api::class, fn(Container $c) => new Api(
-            $c->get(SettingsController::class),
-            $c->get(ConnectionTestController::class)
+        $container->bind(Api::class, fn(Container $container) => new Api(
+            $container->get(SettingsController::class),
+            $container->get(ConnectionTestController::class)
         ));
     }
 
-    public function boot(Container $c): void
+    public function boot(Container $container): void
     {
-        $c->get(Api::class)->register();
+        $container->get(Api::class)->register();
     }
 }

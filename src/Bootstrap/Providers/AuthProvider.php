@@ -22,19 +22,19 @@ use WPDM\Shared\Logger\WPDM_Logger;
  */
 class AuthProvider implements ServiceProvider
 {
-    public function register(Container $c): void
+    public function register(Container $container): void
     {
-        $c->bind(CredentialLoader::class, fn(Container $c) => new CredentialLoader($c->get(WPDM_Encryption::class)));
-        $c->bind(TokenCacheService::class, fn() => new TokenCacheService());
-        $c->bind(HttpApiClient::class, fn() => new HttpApiClient());
+        $container->bind(CredentialLoader::class, fn(Container $container) => new CredentialLoader($container->get(WPDM_Encryption::class)));
+        $container->bind(TokenCacheService::class, fn() => new TokenCacheService());
+        $container->bind(HttpApiClient::class, fn() => new HttpApiClient());
 
-        $c->bind(WPDM_AuthService::class, fn(Container $c) => new WPDM_AuthService(
-            $c->get(CredentialLoader::class),
-            $c->get(TokenCacheService::class),
-            $c->get(HttpApiClient::class),
-            $c->get(WPDM_Logger::class)
+        $container->bind(WPDM_AuthService::class, fn(Container $container) => new WPDM_AuthService(
+            $container->get(CredentialLoader::class),
+            $container->get(TokenCacheService::class),
+            $container->get(HttpApiClient::class),
+            $container->get(WPDM_Logger::class)
         ));
     }
 
-    public function boot(Container $c): void {}
+    public function boot(Container $container): void {}
 }

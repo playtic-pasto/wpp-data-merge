@@ -26,42 +26,42 @@ use WPDM\Shared\Logger\WPDM_Logger;
  */
 class CronProvider implements ServiceProvider
 {
-    public function register(Container $c): void
+    public function register(Container $container): void
     {
-        $c->bind(CronSettings::class, fn() => new CronSettings());
-        $c->bind(CronLock::class, fn(Container $c) => new CronLock($c->get(CronSettings::class)));
-        $c->bind(CronHistory::class, fn(Container $c) => new CronHistory($c->get(CronSettings::class)));
+        $container->bind(CronSettings::class, fn() => new CronSettings());
+        $container->bind(CronLock::class, fn(Container $container) => new CronLock($container->get(CronSettings::class)));
+        $container->bind(CronHistory::class, fn(Container $container) => new CronHistory($container->get(CronSettings::class)));
 
-        $c->bind(CronRunner::class, fn(Container $c) => new CronRunner(
-            $c->get(CronSettings::class),
-            $c->get(CronLock::class),
-            $c->get(CronHistory::class),
-            $c->get(ProjectSyncService::class),
-            $c->get(WPDM_Logger::class)
+        $container->bind(CronRunner::class, fn(Container $container) => new CronRunner(
+            $container->get(CronSettings::class),
+            $container->get(CronLock::class),
+            $container->get(CronHistory::class),
+            $container->get(ProjectSyncService::class),
+            $container->get(WPDM_Logger::class)
         ));
 
-        $c->bind(CronScheduler::class, fn(Container $c) => new CronScheduler(
-            $c->get(CronSettings::class),
-            $c->get(CronRunner::class),
-            $c->get(WPDM_Logger::class)
+        $container->bind(CronScheduler::class, fn(Container $container) => new CronScheduler(
+            $container->get(CronSettings::class),
+            $container->get(CronRunner::class),
+            $container->get(WPDM_Logger::class)
         ));
 
-        $c->bind(CronRestController::class, fn(Container $c) => new CronRestController(
-            $c->get(CronRunner::class)
+        $container->bind(CronRestController::class, fn(Container $container) => new CronRestController(
+            $container->get(CronRunner::class)
         ));
 
-        $c->bind(CronController::class, fn(Container $c) => new CronController(
-            $c->get(CronSettings::class),
-            $c->get(CronScheduler::class),
-            $c->get(CronRunner::class),
-            $c->get(CronHistory::class)
+        $container->bind(CronController::class, fn(Container $container) => new CronController(
+            $container->get(CronSettings::class),
+            $container->get(CronScheduler::class),
+            $container->get(CronRunner::class),
+            $container->get(CronHistory::class)
         ));
     }
 
-    public function boot(Container $c): void
+    public function boot(Container $container): void
     {
-        $c->get(CronScheduler::class)->register();
-        $c->get(CronRestController::class)->register();
-        $c->get(CronController::class)->register();
+        $container->get(CronScheduler::class)->register();
+        $container->get(CronRestController::class)->register();
+        $container->get(CronController::class)->register();
     }
 }

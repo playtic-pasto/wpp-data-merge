@@ -16,6 +16,7 @@ return [
     'auth_path'          => '/V3/API/Auth/Usuario',
     'api_base'           => '/V3/CBRClientes/API',
     'units_path'         => '/Unidades/PorProyecto/{id}',
+    'unit_types_path'    => '/TipoUnidad',
     'macroprojects_path' => '/Macroproyectos/basica',
     'projects_path'      => '/proyectos/{id}',
     'option_endpoint'    => 'wpdm_api_endpoint',

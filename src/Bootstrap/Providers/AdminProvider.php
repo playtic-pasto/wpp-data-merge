@@ -15,7 +15,6 @@ use WPDM\Core\Infrastructure\WordPress\Cron\CronScheduler;
 use WPDM\Core\Infrastructure\WordPress\Cron\CronSettings;
 use WPDM\Core\Infrastructure\WordPress\Admin\PostType\Columns\SyncColumn;
 use WPDM\Core\Infrastructure\WordPress\Admin\PostType\Controllers\SyncController;
-use WPDM\Core\Infrastructure\WordPress\Admin\PostType\MetaBoxes\DataMetaBox;
 use WPDM\Core\Infrastructure\WordPress\Admin\PostType\MetaBoxes\SyncMetaBox;
 use WPDM\Core\Infrastructure\WordPress\Admin\PostType\ProjectAdminHooks;
 use WPDM\Core\Infrastructure\WordPress\Hooks\Actions;
@@ -32,42 +31,40 @@ use WPDM\Shared\Container\Container;
  */
 class AdminProvider implements ServiceProvider
 {
-    public function register(Container $c): void
+    public function register(Container $container): void
     {
-        $c->bind(CronPage::class, fn(Container $c) => new CronPage(
-            $c->get(CronSettings::class),
-            $c->get(CronScheduler::class),
-            $c->get(CronHistory::class),
-            $c->get(ProjectsRepository::class)
+        $container->bind(CronPage::class, fn(Container $container) => new CronPage(
+            $container->get(CronSettings::class),
+            $container->get(CronScheduler::class),
+            $container->get(CronHistory::class),
+            $container->get(ProjectsRepository::class)
         ));
 
-        $c->bind(Menu::class, fn(Container $c) => new Menu(
+        $container->bind(Menu::class, fn(Container $container) => new Menu(
             null,
             null,
-            $c->get(CronPage::class),
+            $container->get(CronPage::class),
             null
         ));
-        $c->bind(Actions::class, fn() => new Actions());
-        $c->bind(Resources::class, fn() => new Resources());
+        $container->bind(Actions::class, fn() => new Actions());
+        $container->bind(Resources::class, fn() => new Resources());
 
-        $c->bind(SyncColumn::class, fn(Container $c) => new SyncColumn($c->get(CredentialLoader::class)));
-        $c->bind(SyncMetaBox::class, fn(Container $c) => new SyncMetaBox($c->get(CredentialLoader::class)));
-        $c->bind(DataMetaBox::class, fn() => new DataMetaBox());
-        $c->bind(SyncController::class, fn(Container $c) => new SyncController($c->get(ProjectSyncService::class)));
+        $container->bind(SyncColumn::class, fn(Container $container) => new SyncColumn($container->get(CredentialLoader::class)));
+        $container->bind(SyncMetaBox::class, fn(Container $container) => new SyncMetaBox($container->get(CredentialLoader::class)));
+        $container->bind(SyncController::class, fn(Container $container) => new SyncController($container->get(ProjectSyncService::class)));
 
-        $c->bind(ProjectAdminHooks::class, fn(Container $c) => new ProjectAdminHooks(
-            $c->get(SyncColumn::class),
-            $c->get(SyncMetaBox::class),
-            $c->get(DataMetaBox::class),
-            $c->get(SyncController::class)
+        $container->bind(ProjectAdminHooks::class, fn(Container $container) => new ProjectAdminHooks(
+            $container->get(SyncColumn::class),
+            $container->get(SyncMetaBox::class),
+            $container->get(SyncController::class)
         ));
     }
 
-    public function boot(Container $c): void
+    public function boot(Container $container): void
     {
-        $c->get(Menu::class)->register();
-        $c->get(Actions::class)->register();
-        $c->get(Resources::class)->register();
-        $c->get(ProjectAdminHooks::class)->register();
+        $container->get(Menu::class)->register();
+        $container->get(Actions::class)->register();
+        $container->get(Resources::class)->register();
+        $container->get(ProjectAdminHooks::class)->register();
     }
 }
