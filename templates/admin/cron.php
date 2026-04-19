@@ -19,217 +19,233 @@ $enabled    = $settings->isEnabled();
 $minutes    = $settings->intervalMinutes();
 ?>
 <div class="wrap wpdm-wrap">
-    <h1>Cron Job — Sincronización Automática</h1>
-    <p>Gestiona la tarea programada que sincroniza todos los proyectos desde SINCO.</p>
+    <h1>Cron Job</h1>
+    <p class="wpdm-subtitle">Sincronización automática de proyectos desde SINCO</p>
 
-    <!-- Configuración -->
-    <div class="wpdm-section">
-        <h2>Configuración</h2>
-        <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
-            <input type="hidden" name="action" value="<?php echo esc_attr($actions['save']); ?>" />
-            <?php wp_nonce_field($actions['save']); ?>
-
-            <table class="form-table">
-                <tr>
-                    <th scope="row">Estado</th>
-                    <td>
-                        <label>
-                            <input type="checkbox" name="wpdm_cron_enabled" value="1" <?php checked($enabled); ?> />
-                            Activar sincronización automática
-                        </label>
-                    </td>
-                </tr>
-                <tr>
-                    <th scope="row"><label for="wpdm_cron_interval_minutes">Intervalo (minutos)</label></th>
-                    <td>
-                        <input type="number" min="1" max="10080" step="1"
-                               id="wpdm_cron_interval_minutes"
-                               name="wpdm_cron_interval_minutes"
-                               value="<?php echo esc_attr((string) $minutes); ?>"
-                               class="small-text" /> minutos
-                        <p class="description">Frecuencia con la que se ejecutará el cron (mínimo 1 minuto).</p>
-                    </td>
-                </tr>
-            </table>
-            <?php submit_button('Guardar configuración'); ?>
-        </form>
+    <!-- Stats rápidas -->
+    <div class="wpdm-stats">
+        <div class="wpdm-stat">
+            <div class="wpdm-stat-icon <?php echo $enabled ? 'wpdm-stat-icon--green' : 'wpdm-stat-icon--red'; ?>">
+                <span class="dashicons <?php echo $enabled ? 'dashicons-yes-alt' : 'dashicons-dismiss'; ?>"></span>
+            </div>
+            <div class="wpdm-stat-content">
+                <span class="wpdm-stat-value wpdm-stat-value--small"><?php echo $enabled ? 'Activo' : 'Inactivo'; ?></span>
+                <span class="wpdm-stat-label">Estado</span>
+            </div>
+        </div>
+        <div class="wpdm-stat">
+            <div class="wpdm-stat-icon wpdm-stat-icon--blue">
+                <span class="dashicons dashicons-clock"></span>
+            </div>
+            <div class="wpdm-stat-content">
+                <span class="wpdm-stat-value wpdm-stat-value--small"><?php echo esc_html(Formatter::timestamp($lastRun ?: null)); ?></span>
+                <span class="wpdm-stat-label">Última ejecución</span>
+            </div>
+        </div>
+        <div class="wpdm-stat">
+            <div class="wpdm-stat-icon wpdm-stat-icon--yellow">
+                <span class="dashicons dashicons-calendar-alt"></span>
+            </div>
+            <div class="wpdm-stat-content">
+                <span class="wpdm-stat-value wpdm-stat-value--small"><?php echo esc_html(Formatter::timestamp($nextRun)); ?></span>
+                <span class="wpdm-stat-label">Próxima ejecución</span>
+            </div>
+        </div>
+        <div class="wpdm-stat">
+            <div class="wpdm-stat-icon wpdm-stat-icon--blue">
+                <span class="dashicons dashicons-update"></span>
+            </div>
+            <div class="wpdm-stat-content">
+                <span class="wpdm-stat-value"><?php echo esc_html((string) $minutes); ?></span>
+                <span class="wpdm-stat-label">Intervalo (min)</span>
+            </div>
+        </div>
     </div>
 
-    <!-- Estado actual -->
-    <div class="wpdm-section">
-        <h2>Estado actual</h2>
-        <table class="widefat">
-            <tbody>
-                <tr>
-                    <th style="width:240px;">Estado</th>
-                    <td>
-                        <?php if ($enabled) : ?>
-                            <span style="display:inline-block;padding:2px 10px;border-radius:10px;background:#d1fae5;color:#065f46;font-weight:600;font-size:11px;">Activo</span>
-                        <?php else : ?>
-                            <span style="display:inline-block;padding:2px 10px;border-radius:10px;background:#e5e7eb;color:#374151;font-weight:600;font-size:11px;">Inactivo</span>
-                        <?php endif; ?>
-                    </td>
-                </tr>
-                <tr>
-                    <th>Última ejecución</th>
-                    <td><?php echo esc_html(Formatter::timestamp($lastRun ?: null)); ?></td>
-                </tr>
-                <tr>
-                    <th>Próxima ejecución</th>
-                    <td><?php echo esc_html(Formatter::timestamp($nextRun)); ?></td>
-                </tr>
-                <tr>
-                    <th>Intervalo configurado</th>
-                    <td><?php echo esc_html(sprintf('Cada %d minutos', $minutes)); ?></td>
-                </tr>
-                <tr>
-                    <th>Hora del servidor</th>
-                    <td><?php echo esc_html($serverTime); ?> (<?php echo esc_html($timezone); ?>)</td>
-                </tr>
-                <?php if ($lastError !== '') : ?>
-                    <tr>
-                        <th>Último error</th>
-                        <td style="color:#991b1b;"><?php echo esc_html($lastError); ?></td>
-                    </tr>
-                <?php endif; ?>
-            </tbody>
-        </table>
+    <div class="wpdm-cards">
+        <!-- Configuración -->
+        <div class="wpdm-card">
+            <h2><span class="dashicons dashicons-admin-settings"></span> Configuración</h2>
+            <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
+                <input type="hidden" name="action" value="<?php echo esc_attr($actions['save']); ?>" />
+                <?php wp_nonce_field($actions['save']); ?>
 
-        <p style="margin-top:15px;">
+                <table class="wpdm-status-table">
+                    <tr>
+                        <th>Activar</th>
+                        <td>
+                            <label>
+                                <input type="checkbox" name="wpdm_cron_enabled" value="1" <?php checked($enabled); ?> />
+                                Sincronización automática
+                            </label>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th><label for="wpdm_cron_interval_minutes">Intervalo</label></th>
+                        <td>
+                            <input type="number" min="1" max="10080" step="1"
+                                   id="wpdm_cron_interval_minutes"
+                                   name="wpdm_cron_interval_minutes"
+                                   value="<?php echo esc_attr((string) $minutes); ?>"
+                                   class="small-text" /> minutos
+                        </td>
+                    </tr>
+                </table>
+
+                <div style="display: flex; gap: 8px; margin-top: 16px;">
+                    <?php submit_button('Guardar', 'primary', 'submit', false); ?>
+                </div>
+            </form>
+
+            <hr style="border: none; border-top: 1px solid #f0f0f1; margin: 20px 0;" />
+
             <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="display:inline-block;">
                 <input type="hidden" name="action" value="<?php echo esc_attr($actions['run']); ?>" />
                 <?php wp_nonce_field($actions['run']); ?>
-                <?php submit_button('Ejecutar ahora', 'primary', 'submit', false); ?>
+                <?php submit_button('Ejecutar ahora', 'secondary', 'submit', false); ?>
             </form>
-        </p>
-    </div>
 
-    <!-- Endpoint REST -->
-    <div class="wpdm-section">
-        <h2>Endpoint REST (cron del sistema)</h2>
-        <p>Úsalo desde un cron externo (wget/curl) cuando WP-Cron no sea fiable.</p>
-        <table class="widefat">
-            <tbody>
+            <?php if ($lastError !== ''): ?>
+                <div class="wpdm-alert wpdm-alert--error" style="margin-top: 16px;">
+                    <strong>Último error:</strong> <?php echo esc_html($lastError); ?>
+                </div>
+            <?php endif; ?>
+        </div>
+
+        <!-- Endpoint REST -->
+        <div class="wpdm-card">
+            <h2><span class="dashicons dashicons-rest-api"></span> Endpoint REST</h2>
+            <p style="color: #646970; margin-top: 0;">Para cron externo (wget/curl) cuando WP-Cron no sea fiable.</p>
+
+            <table class="wpdm-status-table">
                 <tr>
-                    <th style="width:240px;">URL</th>
-                    <td><code><?php echo esc_html($endpoint); ?></code></td>
+                    <th>URL</th>
+                    <td><code style="font-size: 0.85em; word-break: break-all;"><?php echo esc_html($endpoint); ?></code></td>
                 </tr>
                 <tr>
-                    <th>Autenticación</th>
-                    <td>
-                        Header <code>X-WPDM-Token: &lt;token&gt;</code> o query <code>?token=&lt;token&gt;</code>
-                    </td>
+                    <th>Auth</th>
+                    <td><code style="font-size: 0.85em;">X-WPDM-Token: &lt;token&gt;</code></td>
                 </tr>
                 <tr>
-                    <th>Token actual</th>
+                    <th>Token</th>
                     <td>
-                        <?php if ($token !== '') : ?>
-                            <code style="user-select:all;"><?php echo esc_html($token); ?></code>
-                        <?php else : ?>
-                            <em style="color:#b45309;">Aún no generado.</em>
+                        <?php if ($token !== ''): ?>
+                            <code style="font-size: 0.85em; user-select: all;"><?php echo esc_html($token); ?></code>
+                        <?php else: ?>
+                            <em style="color: #b45309;">No generado</em>
                         <?php endif; ?>
-
-                        <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="display:inline-block;margin-left:10px;">
-                            <input type="hidden" name="action" value="<?php echo esc_attr($actions['token']); ?>" />
-                            <?php wp_nonce_field($actions['token']); ?>
-                            <button type="submit" class="button"
-                                    onclick="return confirm('Esto invalidará el token actual. ¿Continuar?');">
-                                <?php echo $token === '' ? 'Generar token' : 'Regenerar'; ?>
-                            </button>
-                        </form>
                     </td>
                 </tr>
-                <?php if ($token !== '') : ?>
-                    <tr>
-                        <th>Ejemplo cURL</th>
-                        <td><code>curl -H "X-WPDM-Token: <?php echo esc_html($token); ?>" <?php echo esc_html($endpoint); ?></code></td>
-                    </tr>
-                <?php endif; ?>
-            </tbody>
-        </table>
+            </table>
+
+            <div style="margin-top: 16px;">
+                <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="display:inline-block;">
+                    <input type="hidden" name="action" value="<?php echo esc_attr($actions['token']); ?>" />
+                    <?php wp_nonce_field($actions['token']); ?>
+                    <button type="submit" class="button" onclick="return confirm('Esto invalidará el token actual. ¿Continuar?');">
+                        <?php echo $token === '' ? 'Generar token' : 'Regenerar token'; ?>
+                    </button>
+                </form>
+            </div>
+
+            <?php if ($token !== ''): ?>
+                <div class="wpdm-alert wpdm-alert--info" style="margin-top: 16px;">
+                    <strong>cURL:</strong><br />
+                    <code style="font-size: 0.8em; word-break: break-all;">curl -H "X-WPDM-Token: <?php echo esc_html($token); ?>" <?php echo esc_html($endpoint); ?></code>
+                </div>
+            <?php endif; ?>
+        </div>
     </div>
 
     <!-- Historial -->
-    <div class="wpdm-section">
-        <h2 style="display:flex;justify-content:space-between;align-items:center;">
-            Historial de ejecuciones
-            <?php if (!empty($history)) : ?>
-                <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="margin:0;">
-                    <input type="hidden" name="action" value="<?php echo esc_attr($actions['clear']); ?>" />
-                    <?php wp_nonce_field($actions['clear']); ?>
-                    <button type="submit" class="button button-link-delete"
-                            onclick="return confirm('¿Limpiar historial?');">Limpiar</button>
-                </form>
-            <?php endif; ?>
-        </h2>
-        <table class="widefat striped">
-            <thead>
-                <tr>
-                    <th>Fecha</th>
-                    <th>Tipo</th>
-                    <th>Estado</th>
-                    <th>Duración</th>
-                    <th>Procesados</th>
-                    <th>OK / Error / Pausados</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php if (empty($history)) : ?>
-                    <tr><td colspan="6" style="text-align:center;padding:20px;color:#646970;">No hay ejecuciones registradas.</td></tr>
-                <?php else : ?>
-                    <?php foreach (array_reverse($history) as $row) :
-                        $stats = $row['stats'] ?? [];
-                        $ok = $row['status'] === 'success';
-                    ?>
-                        <tr>
-                            <td><?php echo esc_html(Formatter::timestamp((int) $row['timestamp'])); ?></td>
-                            <td><?php echo esc_html((string) ($row['type'] ?? '—')); ?></td>
-                            <td style="color:<?php echo $ok ? '#065f46' : '#991b1b'; ?>;font-weight:600;">
-                                <?php echo $ok ? 'success' : 'error'; ?>
-                            </td>
-                            <td><?php echo esc_html(sprintf('%.2f s', (float) ($row['duration'] ?? 0))); ?></td>
-                            <td><?php echo esc_html((string) (int) ($stats['processed'] ?? 0)); ?></td>
-                            <td>
-                                <?php echo esc_html(sprintf(
-                                    '%d / %d / %d',
-                                    (int) ($stats['succeeded'] ?? 0),
-                                    (int) ($stats['failed']    ?? 0),
-                                    (int) ($stats['skipped']   ?? 0)
-                                )); ?>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
+    <div class="wpdm-cards wpdm-cards--full">
+        <div class="wpdm-card">
+            <h2 style="display: flex; justify-content: space-between; align-items: center;">
+                <span><span class="dashicons dashicons-backup"></span> Historial de ejecuciones</span>
+                <?php if (!empty($history)): ?>
+                    <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="margin: 0;">
+                        <input type="hidden" name="action" value="<?php echo esc_attr($actions['clear']); ?>" />
+                        <?php wp_nonce_field($actions['clear']); ?>
+                        <button type="submit" class="button button-link-delete" style="font-size: 0.85em;"
+                                onclick="return confirm('¿Limpiar historial?');">Limpiar</button>
+                    </form>
                 <?php endif; ?>
-            </tbody>
-        </table>
+            </h2>
+
+            <?php if (empty($history)): ?>
+                <div class="wpdm-empty">
+                    <span class="dashicons dashicons-update"></span>
+                    <p>No hay ejecuciones registradas.</p>
+                </div>
+            <?php else: ?>
+                <table class="wpdm-history-table">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Tipo</th>
+                            <th>Estado</th>
+                            <th>Duración</th>
+                            <th>Procesados</th>
+                            <th>Detalle</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach (array_reverse($history) as $row):
+                            $stats = $row['stats'] ?? [];
+                        ?>
+                            <tr>
+                                <td><?php echo esc_html(Formatter::timestamp((int) $row['timestamp'])); ?></td>
+                                <td><?php echo esc_html(ucfirst((string) ($row['type'] ?? '—'))); ?></td>
+                                <td>
+                                    <?php if ($row['status'] === 'success'): ?>
+                                        <span class="wpdm-badge wpdm-badge--active">OK</span>
+                                    <?php else: ?>
+                                        <span class="wpdm-badge wpdm-badge--inactive">Error</span>
+                                    <?php endif; ?>
+                                </td>
+                                <td><?php echo esc_html(number_format((float) ($row['duration'] ?? 0), 2)); ?>s</td>
+                                <td><?php echo esc_html((string) (int) ($stats['processed'] ?? 0)); ?></td>
+                                <td>
+                                    <span class="wpdm-history-stats">
+                                        <span class="ok"><?php echo (int) ($stats['succeeded'] ?? 0); ?> ok</span>
+                                        <span class="err"><?php echo (int) ($stats['failed'] ?? 0); ?> err</span>
+                                        <span class="skip"><?php echo (int) ($stats['skipped'] ?? 0); ?> skip</span>
+                                    </span>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            <?php endif; ?>
+        </div>
     </div>
 
     <!-- Errores por proyecto -->
-    <div class="wpdm-section">
-        <h2>Errores recientes por proyecto</h2>
-        <table class="widefat striped">
-            <thead>
-                <tr>
-                    <th>Proyecto</th>
-                    <th>Error</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php if (empty($errors)) : ?>
-                    <tr><td colspan="2" style="text-align:center;padding:20px;color:#646970;">Sin errores registrados.</td></tr>
-                <?php else : ?>
-                    <?php foreach ($errors as $e) : ?>
+    <?php if (!empty($errors)): ?>
+        <div class="wpdm-cards wpdm-cards--full">
+            <div class="wpdm-card">
+                <h2><span class="dashicons dashicons-warning"></span> Errores recientes por proyecto</h2>
+                <table class="wpdm-history-table">
+                    <thead>
                         <tr>
-                            <td>
-                                <a href="<?php echo esc_url(get_edit_post_link($e['project']['post_id'])); ?>">
-                                    <?php echo esc_html($e['project']['title']); ?>
-                                </a>
-                            </td>
-                            <td style="color:#991b1b;"><?php echo esc_html($e['error']); ?></td>
+                            <th>Proyecto</th>
+                            <th>Error</th>
                         </tr>
-                    <?php endforeach; ?>
-                <?php endif; ?>
-            </tbody>
-        </table>
-    </div>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($errors as $e): ?>
+                            <tr>
+                                <td>
+                                    <a href="<?php echo esc_url(get_edit_post_link($e['project']['post_id'])); ?>">
+                                        <?php echo esc_html($e['project']['title']); ?>
+                                    </a>
+                                </td>
+                                <td style="color: #991b1b;"><?php echo esc_html($e['error']); ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    <?php endif; ?>
 </div>
