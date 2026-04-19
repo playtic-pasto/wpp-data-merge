@@ -21,7 +21,7 @@ class ProjectsRepository
     public const POST_TYPE = 'proyecto';
 
     /**
-     * @return array<int, array{post_id:int, title:string, id_macroproject:int, id_proyectos:int[]}>
+     * @return array<int, array{post_id:int, title:string, id_macroproject:int, id_projects:int[]}>
      */
     public function all(): array
     {
@@ -37,7 +37,7 @@ class ProjectsRepository
     }
 
     /**
-     * @return array{post_id:int, title:string, id_macroproject:int, id_proyectos:int[]}|null
+     * @return array{post_id:int, title:string, id_macroproject:int, id_projects:int[]}|null
      */
     public function find(int $postId): ?array
     {
@@ -54,7 +54,7 @@ class ProjectsRepository
      * Lee el repeater ACF 'ids_project' y extrae cada sub-campo 'id_project'.
      * Si ACF no está activo, intenta leer desde post_meta directamente.
      *
-     * @return array{post_id:int, title:string, id_macroproject:int, id_proyectos:int[]}
+     * @return array{post_id:int, title:string, id_macroproject:int, id_projects:int[]}
      */
     private function mapPost(\WP_Post $post): array
     {
@@ -66,7 +66,7 @@ class ProjectsRepository
             'post_id' => (int) $post->ID,
             'title' => get_the_title($post) ?: '(sin título)',
             'id_macroproject' => $idMacro,
-            'id_proyectos' => $ids,
+            'id_projects' => $ids,
         ];
     }
 

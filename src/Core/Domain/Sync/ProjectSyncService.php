@@ -52,7 +52,7 @@ class ProjectSyncService
     /**
      * Resumen consolidado (JSON) de TODAS las unidades del proyecto: totales,
      * precio min/max/prom/total, áreas min/max/prom, conteo por estado y por
-     * tipo, cantidad de id_proyectos incluidos y fecha del sync.
+     * tipo, cantidad de id_projects incluidos y fecha del sync.
      */
     public const META_SUMMARY = self::PREFIX . 'summary';
 
@@ -95,7 +95,7 @@ class ProjectSyncService
         if ($project === null) {
             return ['success' => false, 'message' => 'El post no corresponde a un proyecto válido.'];
         }
-        if (empty($project['id_proyectos'])) {
+        if (empty($project['id_projects'])) {
             return ['success' => false, 'message' => 'El proyecto no tiene id_proyecto configurado.'];
         }
 
@@ -103,7 +103,7 @@ class ProjectSyncService
         $breakdown = [];
         $errors = [];
 
-        foreach ($project['id_proyectos'] as $idProyecto) {
+        foreach ($project['id_projects'] as $idProyecto) {
             $units = $this->sinco->getUnidadesByProyecto($idProyecto);
 
             if (\is_wp_error($units)) {
@@ -134,7 +134,7 @@ class ProjectSyncService
         }
 
         $aggregates = $this->computeStats($allUnits);
-        $aggregates['projects_count'] = \count($project['id_proyectos']);
+        $aggregates['projects_count'] = \count($project['id_projects']);
         $aggregates['synced_at'] = $now;
 
         $this->saveAcfFields($postId, $aggregates);
@@ -163,6 +163,11 @@ class ProjectSyncService
         $report = ['processed' => 0, 'succeeded' => 0, 'failed' => 0, 'skipped' => 0, 'details' => []];
 
         foreach ($this->projects->all() as $project) {
+            if (empty($project['id_projects'])) {
+                $report['skipped']++;
+                continue;
+            }
+
             $status = (string) \get_post_meta($project['post_id'], self::META_SYNC_STATUS, true);
             if ($status === WPDM_Database::SYNC_STATUS_PENDING) {
                 $report['skipped']++;
