@@ -7,16 +7,18 @@ namespace WPDM\Core\Domain\Sync;
 use WPDM\Core\Domain\Projects\ProjectsRepository;
 use WPDM\Core\Infrastructure\Api\SincoApiClient;
 use WPDM\Core\Infrastructure\Database\WPDM_Database;
+use WPDM\Core\Infrastructure\WordPress\Acf\SyncCatalog;
+use WPDM\Core\Infrastructure\WordPress\Acf\SyncFiltersReader;
 use WPDM\Shared\Logger\WPDM_Logger;
 
 /**
  * Orquesta la sincronización a nivel de proyecto (CPT "proyecto"):
- * consulta las unidades en SINCO para cada id_proyecto del CSV, calcula
- * agregados y los persiste como post_meta del post.
+ * consulta las unidades en SINCO, descubre estados/tipos nuevos,
+ * aplica los filtros configurados y persiste los datos en campos ACF.
  *
- * @name ProjectSyncService
- * @package WPDM\Core\Domain\Sync
- * @since 1.0.0
+ * @see SyncCatalog            Descubre y guarda estados/tipos nuevos.
+ * @see SyncFiltersReader      Lee los filtros de estado y tipo seleccionados.
+ * @see SyncDataFieldGroup     Define los campos ACF donde se guardan los datos.
  */
 class ProjectSyncService
 {
@@ -64,16 +66,22 @@ class ProjectSyncService
 
     private SincoApiClient $sinco;
     private ProjectsRepository $projects;
+    private SyncFiltersReader $filters;
+    private SyncCatalog $catalog;
     private WPDM_Logger $logger;
 
     public function __construct(
         ?SincoApiClient $sinco = null,
         ?ProjectsRepository $projects = null,
-        ?WPDM_Logger $logger = null
+        ?WPDM_Logger $logger = null,
+        ?SyncFiltersReader $filters = null,
+        ?SyncCatalog $catalog = null
     ) {
         $this->sinco = $sinco ?? new SincoApiClient();
         $this->projects = $projects ?? new ProjectsRepository();
         $this->logger = $logger ?? new WPDM_Logger(WPDM_PATH);
+        $this->filters = $filters ?? new SyncFiltersReader();
+        $this->catalog = $catalog ?? new SyncCatalog();
     }
 
     /**
@@ -115,6 +123,9 @@ class ProjectSyncService
 
         $now = current_time('mysql');
 
+        $this->catalog->discoverFromUnits($allUnits);
+        $allUnits = $this->filters->applyFilters($allUnits);
+
         if (empty($allUnits) && !empty($errors)) {
             update_post_meta($postId, self::META_SYNC_STATUS, WPDM_Database::SYNC_STATUS_ERROR);
             update_post_meta($postId, self::META_LAST_ERROR, \implode(' | ', $errors));
@@ -126,11 +137,8 @@ class ProjectSyncService
         $aggregates['projects_count'] = \count($project['id_proyectos']);
         $aggregates['synced_at'] = $now;
 
-        update_post_meta($postId, self::META_SUMMARY, \wp_slash(\wp_json_encode($aggregates)));
-        update_post_meta($postId, self::META_BY_PROJECT, \wp_slash(\wp_json_encode($breakdown)));
-        update_post_meta($postId, self::META_LAST_SYNCED, $now);
-        update_post_meta($postId, self::META_SYNC_STATUS, empty($errors) ? WPDM_Database::SYNC_STATUS_ACTIVE : WPDM_Database::SYNC_STATUS_ERROR);
-        update_post_meta($postId, self::META_LAST_ERROR, empty($errors) ? '' : \implode(' | ', $errors));
+        $this->saveAcfFields($postId, $aggregates);
+        $this->saveSyncMeta($postId, $now, $errors, $aggregates, $breakdown);
 
         return [
             'success' => empty($errors),
@@ -262,5 +270,67 @@ class ProjectSyncService
             'by_status' => $byStatus,
             'by_type' => $byType,
         ];
+    }
+
+    /**
+     * Guarda los datos calculados en campos ACF individuales.
+     *
+     * Cada valor numérico se escribe en su propio campo ACF para que sea
+     * consultable con meta_query y visible en la UI del proyecto.
+     * Los conteos por estado y tipo se guardan como repeaters ACF.
+     *
+     * @see SyncDataFieldGroup  Define los campos ACF que se llenan aquí.
+     *
+     * @param array<string, mixed> $aggregates Datos calculados por computeStats().
+     */
+    private function saveAcfFields(int $postId, array $aggregates): void
+    {
+        $numericFields = [
+            'wpdm_units_total'      => 'units_total',
+            'wpdm_price_min'        => 'price_min',
+            'wpdm_price_max'        => 'price_max',
+            'wpdm_price_avg'        => 'price_avg',
+            'wpdm_price_total'      => 'price_total',
+            'wpdm_area_private_min' => 'private_area_min',
+            'wpdm_area_private_max' => 'private_area_max',
+            'wpdm_area_private_avg' => 'private_area_avg',
+            'wpdm_area_built_min'   => 'built_area_min',
+            'wpdm_area_built_max'   => 'built_area_max',
+        ];
+
+        foreach ($numericFields as $acfFieldName => $aggregateKey) {
+            update_field($acfFieldName, $aggregates[$aggregateKey], $postId);
+        }
+
+        $statusRows = [];
+        foreach (($aggregates['by_status'] ?? []) as $name => $count) {
+            $statusRows[] = ['status_name' => $name, 'status_count' => $count];
+        }
+        update_field('wpdm_by_status', $statusRows, $postId);
+
+        $typeRows = [];
+        foreach (($aggregates['by_type'] ?? []) as $name => $count) {
+            $typeRows[] = ['type_name' => $name, 'type_count' => $count];
+        }
+        update_field('wpdm_by_type', $typeRows, $postId);
+    }
+
+    /**
+     * Guarda los metadatos internos de control de sincronización.
+     *
+     * Estos campos NO son ACF — son post_meta internos del plugin
+     * para controlar el estado, errores y detalle por proyecto.
+     *
+     * @param array<string, mixed>        $aggregates Datos consolidados.
+     * @param array<int|string, mixed>    $breakdown  Detalle por id_proyecto.
+     * @param list<string>                $errors     Errores ocurridos.
+     */
+    private function saveSyncMeta(int $postId, string $now, array $errors, array $aggregates, array $breakdown): void
+    {
+        update_post_meta($postId, self::META_SUMMARY, \wp_slash(\wp_json_encode($aggregates)));
+        update_post_meta($postId, self::META_BY_PROJECT, \wp_slash(\wp_json_encode($breakdown)));
+        update_post_meta($postId, self::META_LAST_SYNCED, $now);
+        update_post_meta($postId, self::META_SYNC_STATUS, empty($errors) ? WPDM_Database::SYNC_STATUS_ACTIVE : WPDM_Database::SYNC_STATUS_ERROR);
+        update_post_meta($postId, self::META_LAST_ERROR, empty($errors) ? '' : \implode(' | ', $errors));
     }
 }

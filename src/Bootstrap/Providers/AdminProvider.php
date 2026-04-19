@@ -15,7 +15,6 @@ use WPDM\Core\Infrastructure\WordPress\Cron\CronScheduler;
 use WPDM\Core\Infrastructure\WordPress\Cron\CronSettings;
 use WPDM\Core\Infrastructure\WordPress\Admin\PostType\Columns\SyncColumn;
 use WPDM\Core\Infrastructure\WordPress\Admin\PostType\Controllers\SyncController;
-use WPDM\Core\Infrastructure\WordPress\Admin\PostType\MetaBoxes\DataMetaBox;
 use WPDM\Core\Infrastructure\WordPress\Admin\PostType\MetaBoxes\SyncMetaBox;
 use WPDM\Core\Infrastructure\WordPress\Admin\PostType\ProjectAdminHooks;
 use WPDM\Core\Infrastructure\WordPress\Hooks\Actions;
@@ -52,13 +51,11 @@ class AdminProvider implements ServiceProvider
 
         $container->bind(SyncColumn::class, fn(Container $container) => new SyncColumn($container->get(CredentialLoader::class)));
         $container->bind(SyncMetaBox::class, fn(Container $container) => new SyncMetaBox($container->get(CredentialLoader::class)));
-        $container->bind(DataMetaBox::class, fn() => new DataMetaBox());
         $container->bind(SyncController::class, fn(Container $container) => new SyncController($container->get(ProjectSyncService::class)));
 
         $container->bind(ProjectAdminHooks::class, fn(Container $container) => new ProjectAdminHooks(
             $container->get(SyncColumn::class),
             $container->get(SyncMetaBox::class),
-            $container->get(DataMetaBox::class),
             $container->get(SyncController::class)
         ));
     }

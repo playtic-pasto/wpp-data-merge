@@ -11,6 +11,8 @@ use WPDM\Core\Infrastructure\Api\CredentialLoader;
 use WPDM\Core\Infrastructure\Api\HttpApiClient;
 use WPDM\Core\Infrastructure\Api\SincoApiClient;
 use WPDM\Core\Infrastructure\Api\WPDM_AuthService;
+use WPDM\Core\Infrastructure\WordPress\Acf\SyncCatalog;
+use WPDM\Core\Infrastructure\WordPress\Acf\SyncFiltersReader;
 use WPDM\Shared\Container\Container;
 use WPDM\Shared\Logger\WPDM_Logger;
 
@@ -37,7 +39,9 @@ class SincoProvider implements ServiceProvider
         $container->bind(ProjectSyncService::class, fn(Container $container) => new ProjectSyncService(
             $container->get(SincoApiClient::class),
             $container->get(ProjectsRepository::class),
-            $container->get(WPDM_Logger::class)
+            $container->get(WPDM_Logger::class),
+            $container->get(SyncFiltersReader::class),
+            $container->get(SyncCatalog::class)
         ));
     }
 

@@ -47,6 +47,18 @@ class SincoApiClient
     }
 
     /**
+     * Lista los tipos de unidad disponibles en SINCO.
+     *
+     * Cada elemento tiene: id, nombre, abreviatura, esReal, esVirtual, nomenclatura.
+     *
+     * @return array<int, array<string, mixed>>|\WP_Error
+     */
+    public function getTiposUnidad(): array|\WP_Error
+    {
+        return $this->requestList($this->apiConfig['unit_types_path']);
+    }
+
+    /**
      * Lista los macroproyectos (información básica).
      *
      * @return array<int, array<string, mixed>>|\WP_Error
