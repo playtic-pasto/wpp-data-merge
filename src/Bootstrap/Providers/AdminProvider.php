@@ -10,6 +10,7 @@ use WPDM\Core\Domain\Sync\ProjectSyncService;
 use WPDM\Core\Infrastructure\Api\CredentialLoader;
 use WPDM\Core\Infrastructure\WordPress\Admin\Menu;
 use WPDM\Core\Infrastructure\WordPress\Admin\Pages\CronPage;
+use WPDM\Core\Infrastructure\WordPress\Admin\Pages\DashboardPage;
 use WPDM\Core\Infrastructure\WordPress\Cron\CronHistory;
 use WPDM\Core\Infrastructure\WordPress\Cron\CronScheduler;
 use WPDM\Core\Infrastructure\WordPress\Cron\CronSettings;
@@ -40,8 +41,15 @@ class AdminProvider implements ServiceProvider
             $container->get(ProjectsRepository::class)
         ));
 
+        $container->bind(DashboardPage::class, fn(Container $container) => new DashboardPage(
+            $container->get(ProjectsRepository::class),
+            $container->get(CronSettings::class),
+            $container->get(CronHistory::class),
+            $container->get(CredentialLoader::class)
+        ));
+
         $container->bind(Menu::class, fn(Container $container) => new Menu(
-            null,
+            $container->get(DashboardPage::class),
             null,
             $container->get(CronPage::class),
             null
