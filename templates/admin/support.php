@@ -3,7 +3,7 @@ if (!defined('ABSPATH')) exit;
 ?>
 <div class="wrap wpdm-wrap">
     <h1>Soporte</h1>
-    <p>Información del plugin, preguntas frecuentes y datos de contacto.</p>
+    <p>Información del plugin, preguntas frecuentes.</p>
 
     <div class="wpdm-cards">
         <!-- Información del plugin -->
@@ -20,7 +20,7 @@ if (!defined('ABSPATH')) exit;
                 </tr>
                 <tr>
                     <th>Autor</th>
-                    <td>PlayTIC</td>
+                    <td>PlayTIC - Soluciones Digitales</td>    
                 </tr>
                 <tr>
                     <th>PHP</th>
@@ -75,32 +75,34 @@ if (!defined('ABSPATH')) exit;
 
         <div class="wpdm-faq-item">
             <h3>¿Qué hace este plugin?</h3>
-            <p>WP Data Merge conecta tu sitio WordPress con el ERP SINCO para sincronizar automáticamente proyectos inmobiliarios. Los datos se obtienen vía API REST y se almacenan como contenido en WordPress.</p>
+            <p>WPP Data Merge conecta tu sitio WordPress con el ERP SINCO para sincronizar automáticamente proyectos inmobiliarios. Los datos se obtienen vía API REST y se almacenan como contenido en WordPress.</p>
         </div>
 
         <div class="wpdm-faq-item">
             <h3>¿Cómo configuro la conexión con la API?</h3>
-            <p>Ve a <strong>WP Data Merge &gt; Conexión API</strong> en el menú lateral. Allí podrás ingresar el endpoint, la clave de API y las credenciales de acceso proporcionadas por el administrador del ERP.</p>
+            <p>Ve a <strong>WPP Data Merge &gt; Conexión API</strong> en el menú lateral. Allí podrás configurar la conexión hacia Cinco, el endpoint, la clave de API y las credenciales de acceso proporcionadas por el administrador del ERP.</p>
+            <p>Todos los campos configurados son encriptados y almacenados de manera segura.</p>
         </div>
 
         <div class="wpdm-faq-item">
             <h3>¿Con qué frecuencia se sincronizan los datos?</h3>
-            <p>La frecuencia se configura en <strong>WP Data Merge &gt; Cron Job</strong>. Puedes elegir intervalos desde cada 5 minutos hasta una vez al día. También puedes ejecutar una sincronización manual desde la página de Proyectos.</p>
+            <p>La frecuencia de sincronización se configura en <strong>WPP Data Merge &gt; Cron Job</strong>, donde puedes definir intervalos que van desde cada 5 minutos hasta una vez al día. Además, es posible ejecutar una sincronización manual para un proyecto específico directamente desde la página de detalles del proyecto.</p>
         </div>
 
         <div class="wpdm-faq-item">
-            <h3>¿Qué pasa si la API no responde?</h3>
-            <p>El plugin registra todos los errores en el historial del Cron Job. Los datos existentes no se modifican si ocurre un error durante la sincronización. Puedes revisar los detalles del error en la sección de errores.</p>
+            <h3>¿Qué ocurre si la API no responde?</h3>
+            <p>Si la API no responde, el plugin registra el error en el historial del Cron Job. En estos casos, los datos existentes se mantienen sin cambios para evitar inconsistencias durante la sincronización.</p>
+            <p>Puedes revisar el detalle del error en la sección correspondiente. Para un análisis más técnico, también es posible consultar los logs asociados al plugin.</p>
         </div>
 
         <div class="wpdm-faq-item">
             <h3>¿Se pierden los datos al desactivar el plugin?</h3>
-            <p>No. Al desactivar el plugin los datos permanecen en la base de datos. Solo se eliminan completamente si desinstalas el plugin desde WordPress.</p>
+            <p>No. Al desactivar el plugin, los datos permanecen almacenados en la base de datos. Solo se eliminan por completo si el plugin se desinstala desde WordPress.</p>
         </div>
 
         <div class="wpdm-faq-item">
-            <h3>¿Dónde puedo ver los logs del plugin?</h3>
-            <p>Los registros de actividad se almacenan en <code>wp-content/plugins/wpp-data-merge/logs/wpdm.log</code>. Puedes acceder a este archivo por FTP o desde el panel de control del servidor.</p>
+            <h3>¿Dónde puedo consultar los logs del plugin?</h3>
+            <p>Los registros de actividad se almacenan en el archivo <code>wp-content/plugins/wpp-data-merge/logs/wpdm.log</code>. Puedes acceder a este archivo mediante FTP o desde el panel de control de tu servidor.</p>
         </div>
     </div>
 </div>

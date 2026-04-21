@@ -15,7 +15,7 @@ if (!defined('ABSPATH')) exit;
             </div>
             <div class="wpdm-stat-content">
                 <span class="wpdm-stat-value"><?php echo esc_html((string) $data['configured']); ?></span>
-                <span class="wpdm-stat-label">Configurados</span>
+                <span class="wpdm-stat-label">Proyectos Configurados</span>
             </div>
         </div>
 
@@ -25,7 +25,7 @@ if (!defined('ABSPATH')) exit;
             </div>
             <div class="wpdm-stat-content">
                 <span class="wpdm-stat-value"><?php echo esc_html((string) $data['synced']); ?></span>
-                <span class="wpdm-stat-label">Sincronizados</span>
+                <span class="wpdm-stat-label">Proyectos Sincronizados</span>
             </div>
         </div>
 
@@ -35,7 +35,7 @@ if (!defined('ABSPATH')) exit;
             </div>
             <div class="wpdm-stat-content">
                 <span class="wpdm-stat-value"><?php echo esc_html((string) $data['with_errors']); ?></span>
-                <span class="wpdm-stat-label">Con errores</span>
+                <span class="wpdm-stat-label">Sincronización con alerta</span>
             </div>
         </div>
 
@@ -49,7 +49,7 @@ if (!defined('ABSPATH')) exit;
                 <?php else: ?>
                     <span class="wpdm-stat-value wpdm-stat-value--small">—</span>
                 <?php endif; ?>
-                <span class="wpdm-stat-label">Última sync</span>
+                <span class="wpdm-stat-label">Última sincronización</span>
             </div>
         </div>
     </div>
