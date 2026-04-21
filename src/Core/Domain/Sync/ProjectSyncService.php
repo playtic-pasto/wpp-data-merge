@@ -124,7 +124,7 @@ class ProjectSyncService
         $now = current_time('mysql');
 
         $this->catalog->discoverFromUnits($allUnits);
-        $allUnits = $this->filters->applyFilters($allUnits);
+        $allUnits = $this->filters->applyFilters($allUnits, $postId);
 
         if (empty($allUnits) && !empty($errors)) {
             update_post_meta($postId, self::META_SYNC_STATUS, WPDM_Database::SYNC_STATUS_ERROR);

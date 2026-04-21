@@ -296,6 +296,41 @@
 }
 
 /* =========================================================================
+   Global filters notice — mensaje informativo en proyectos
+   ========================================================================= */
+
+.wpdm-global-filters-notice {
+    background: #e7f3ff;
+    border-left: 4px solid #2271b1;
+    padding: 12px 15px;
+    margin: 10px 0;
+}
+
+.wpdm-global-filters-notice p {
+    margin: 0;
+    color: #1d2327;
+}
+
+.wpdm-global-filters-notice p:first-child {
+    font-weight: 400;
+}
+
+.wpdm-global-filters-notice p + p {
+    margin-top: 8px;
+    color: #50575e;
+    font-size: 13px;
+}
+
+.wpdm-global-filters-notice a {
+    color: #2271b1;
+    text-decoration: none;
+}
+
+.wpdm-global-filters-notice a:hover {
+    text-decoration: underline;
+}
+
+/* =========================================================================
    Empty state
    ========================================================================= */
 
