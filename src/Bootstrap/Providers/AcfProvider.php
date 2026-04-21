@@ -31,7 +31,9 @@ class AcfProvider implements ServiceProvider
 {
     public function register(Container $container): void
     {
-        $container->bind(ProjectFieldGroup::class, fn() => new ProjectFieldGroup());
+        $container->bind(ProjectFieldGroup::class, fn(Container $container) => new ProjectFieldGroup(
+            $container->get(SyncCatalog::class)
+        ));
         $container->bind(SyncDataFieldGroup::class, fn() => new SyncDataFieldGroup());
 
         $container->bind(SyncCatalog::class, fn(Container $container) => new SyncCatalog(

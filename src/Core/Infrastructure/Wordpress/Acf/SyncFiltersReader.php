@@ -5,34 +5,73 @@ declare(strict_types=1);
 namespace WPDM\Core\Infrastructure\WordPress\Acf;
 
 /**
- * Lee los filtros de sincronización guardados en la Options Page de ACF.
+ * Lee los filtros de sincronización guardados en la Options Page de ACF
+ * o en los campos de cada proyecto individual.
  *
  * Proporciona los valores seleccionados por el usuario para estados y tipos
  * de unidad. El ProjectSyncService usa esta clase para filtrar las unidades
  * antes de calcular las estadísticas.
  *
- * @see SyncFiltersFieldGroup  Define los campos que esta clase lee.
+ * Soporta dos modos:
+ *  - Filtros globales (Options Page) → se aplican a todos los proyectos.
+ *  - Filtros por proyecto → cada proyecto define sus propios filtros.
+ *
+ * @see SyncFiltersFieldGroup  Define los campos globales que esta clase lee.
+ * @see ProjectFieldGroup      Define los campos por proyecto.
  * @see ProjectSyncService     Consume los filtros al sincronizar.
  */
 class SyncFiltersReader
 {
     /**
+     * Verifica si los filtros globales están activados.
+     *
+     * @return bool true si los filtros globales están activados, false si están desactivados.
+     */
+    public function isGlobalEnabled(): bool
+    {
+        if (!function_exists('get_field')) {
+            return true; // Por defecto, usar filtros globales si ACF no está disponible
+        }
+
+        $enabled = get_field('wpdm_enable_global_filters', 'option');
+
+        // Si no está configurado, por defecto está activado (valor default del campo)
+        return $enabled !== false && $enabled !== 0 && $enabled !== '0';
+    }
+
+    /**
      * Obtiene los estados seleccionados para incluir en la sincronización.
      *
+     * Si los filtros globales están activados, lee de la Options Page.
+     * Si están desactivados, lee del proyecto específico.
+     *
+     * @param int|null $postId ID del proyecto. Si es null, siempre lee de opciones globales.
      * @return string[] Lista de estados (ej: ['Disponible', 'Opcionado']). Vacío = todos.
      */
-    public function getSelectedStatuses(): array
+    public function getSelectedStatuses(?int $postId = null): array
     {
+        if ($postId !== null && !$this->isGlobalEnabled()) {
+            return $this->getPostField($postId, 'wpdm_project_filter_statuses');
+        }
+
         return $this->getOptionField('wpdm_filter_statuses');
     }
 
     /**
      * Obtiene los tipos de unidad seleccionados para incluir en la sincronización.
      *
+     * Si los filtros globales están activados, lee de la Options Page.
+     * Si están desactivados, lee del proyecto específico.
+     *
+     * @param int|null $postId ID del proyecto. Si es null, siempre lee de opciones globales.
      * @return string[] Lista de tipos (ej: ['Apartamento', 'Parqueadero']). Vacío = todos.
      */
-    public function getSelectedTypes(): array
+    public function getSelectedTypes(?int $postId = null): array
     {
+        if ($postId !== null && !$this->isGlobalEnabled()) {
+            return $this->getPostField($postId, 'wpdm_project_filter_types');
+        }
+
         return $this->getOptionField('wpdm_filter_types');
     }
 
@@ -44,12 +83,13 @@ class SyncFiltersReader
      * Si no hay filtros seleccionados para una categoría, no se filtra por ella.
      *
      * @param array<int, array<string, mixed>> $units Unidades crudas de la API SINCO.
+     * @param int|null $postId ID del proyecto (para resolver si usar filtros globales o por proyecto).
      * @return array<int, array<string, mixed>> Unidades que pasan los filtros.
      */
-    public function applyFilters(array $units): array
+    public function applyFilters(array $units, ?int $postId = null): array
     {
-        $statuses = $this->getSelectedStatuses();
-        $types = $this->getSelectedTypes();
+        $statuses = $this->getSelectedStatuses($postId);
+        $types = $this->getSelectedTypes($postId);
 
         $hasStatusFilter = !empty($statuses);
         $hasTypeFilter = !empty($types);
@@ -89,6 +129,26 @@ class SyncFiltersReader
         }
 
         $value = get_field($fieldName, 'option');
+
+        if (!is_array($value)) {
+            return [];
+        }
+
+        return $value;
+    }
+
+    /**
+     * Lee un campo de un post específico.
+     *
+     * @return string[]
+     */
+    private function getPostField(int $postId, string $fieldName): array
+    {
+        if (!function_exists('get_field')) {
+            return [];
+        }
+
+        $value = get_field($fieldName, $postId);
 
         if (!is_array($value)) {
             return [];
