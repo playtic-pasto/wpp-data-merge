@@ -20,7 +20,7 @@ $minutes    = $settings->intervalMinutes();
 ?>
 <div class="wrap wpdm-wrap">
     <h1>Cron Job</h1>
-    <p class="wpdm-subtitle">Sincronización automática de proyectos desde SINCO</p>
+    <p class="wpdm-subtitle">Realiza la sincronización automática de proyectos desde SINCO</p>
 
     <!-- Stats rápidas -->
     <div class="wpdm-stats">
@@ -30,7 +30,7 @@ $minutes    = $settings->intervalMinutes();
             </div>
             <div class="wpdm-stat-content">
                 <span class="wpdm-stat-value wpdm-stat-value--small"><?php echo $enabled ? 'Activo' : 'Inactivo'; ?></span>
-                <span class="wpdm-stat-label">Estado</span>
+                <span class="wpdm-stat-label">Estado CronJob</span>
             </div>
         </div>
         <div class="wpdm-stat">

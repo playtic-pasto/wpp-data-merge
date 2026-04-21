@@ -1,7 +1,5 @@
 <?php
 
-//TODO: AQUI CREA LOS CAMPOS ACF DE SINCRONIZACIÓN AUTOMATICAMENTE
-
 declare(strict_types=1);
 
 namespace WPDM\Core\Infrastructure\WordPress\Acf;
@@ -65,8 +63,15 @@ class SyncDataFieldGroup
             'position'     => 'normal',
             'style'        => 'default',
             'menu_order'   => 10,
-            'instructions' => 'Datos calculados automáticamente al sincronizar con SINCO. No editar manualmente.',
             'fields'       => [
+                [
+                    'key'     => 'field_wpdm_sync_description',
+                    'label'   => '',
+                    'name'    => '',
+                    'type'    => 'message',
+                    'message' => '<p><strong>Información:</strong> Los datos sincronizados están definidos según las configuraciones globales o las específicas de cada proyecto. Estos valores se calculan automáticamente al sincronizar con SINCO y no deben editarse manualmente.</p>',
+                    'esc_html' => 0,
+                ],
                 ...$this->priceFields(),
                 ...$this->areaFields(),
                 $this->unitsTotalField(),
@@ -93,7 +98,7 @@ class SyncDataFieldGroup
                 'label'        => 'Precio Mínimo',
                 'name'         => 'wpdm_price_min',
                 'type'         => 'number',
-                'instructions' => 'Precio más bajo entre todas las unidades.',
+                'instructions' => 'Precio más bajo entre todas las unidades.<br><strong>Frontend:</strong> <code>{acf_wpdm_price_min}</code>',
                 'readonly'     => 1,
             ],
             [
@@ -101,7 +106,7 @@ class SyncDataFieldGroup
                 'label'        => 'Precio Máximo',
                 'name'         => 'wpdm_price_max',
                 'type'         => 'number',
-                'instructions' => 'Precio más alto entre todas las unidades.',
+                'instructions' => 'Precio más alto entre todas las unidades.<br><strong>Frontend:</strong> <code>{acf_wpdm_price_max}</code>',
                 'readonly'     => 1,
             ],
             [
@@ -109,7 +114,7 @@ class SyncDataFieldGroup
                 'label'        => 'Precio Promedio',
                 'name'         => 'wpdm_price_avg',
                 'type'         => 'number',
-                'instructions' => 'Promedio de precios de todas las unidades.',
+                'instructions' => 'Promedio de precios de todas las unidades.<br><strong>Frontend:</strong> <code>{acf_wpdm_price_avg}</code>',
                 'readonly'     => 1,
             ],
             [
@@ -117,7 +122,7 @@ class SyncDataFieldGroup
                 'label'        => 'Precio Total',
                 'name'         => 'wpdm_price_total',
                 'type'         => 'number',
-                'instructions' => 'Suma de precios de todas las unidades.',
+                'instructions' => 'Suma de precios de todas las unidades.<br><strong>Frontend:</strong> <code>{acf_wpdm_price_total}</code>',
                 'readonly'     => 1,
             ],
         ];
@@ -140,7 +145,7 @@ class SyncDataFieldGroup
                 'label'        => 'Área Privada Mínima',
                 'name'         => 'wpdm_area_private_min',
                 'type'         => 'number',
-                'instructions' => 'Área privada más pequeña (m²).',
+                'instructions' => 'Área privada más pequeña (m²).<br><strong>Frontend:</strong> <code>{acf_wpdm_area_private_min}</code>',
                 'readonly'     => 1,
             ],
             [
@@ -148,7 +153,7 @@ class SyncDataFieldGroup
                 'label'        => 'Área Privada Máxima',
                 'name'         => 'wpdm_area_private_max',
                 'type'         => 'number',
-                'instructions' => 'Área privada más grande (m²).',
+                'instructions' => 'Área privada más grande (m²).<br><strong>Frontend:</strong> <code>{acf_wpdm_area_private_max}</code>',
                 'readonly'     => 1,
             ],
             [
@@ -156,7 +161,7 @@ class SyncDataFieldGroup
                 'label'        => 'Área Privada Promedio',
                 'name'         => 'wpdm_area_private_avg',
                 'type'         => 'number',
-                'instructions' => 'Promedio de áreas privadas (m²).',
+                'instructions' => 'Promedio de áreas privadas (m²).<br><strong>Frontend:</strong> <code>{acf_wpdm_area_private_avg}</code>',
                 'readonly'     => 1,
             ],
             [
@@ -164,7 +169,7 @@ class SyncDataFieldGroup
                 'label'        => 'Área Construida Mínima',
                 'name'         => 'wpdm_area_built_min',
                 'type'         => 'number',
-                'instructions' => 'Área construida más pequeña (m²).',
+                'instructions' => 'Área construida más pequeña (m²).<br><strong>Frontend:</strong> <code>{acf_wpdm_area_built_min}</code>',
                 'readonly'     => 1,
             ],
             [
@@ -172,7 +177,7 @@ class SyncDataFieldGroup
                 'label'        => 'Área Construida Máxima',
                 'name'         => 'wpdm_area_built_max',
                 'type'         => 'number',
-                'instructions' => 'Área construida más grande (m²).',
+                'instructions' => 'Área construida más grande (m²).<br><strong>Frontend:</strong> <code>{acf_wpdm_area_built_max}</code>',
                 'readonly'     => 1,
             ],
         ];
@@ -194,7 +199,7 @@ class SyncDataFieldGroup
             'label'        => 'Total de Unidades',
             'name'         => 'wpdm_units_total',
             'type'         => 'number',
-            'instructions' => 'Cantidad total de unidades encontradas al sincronizar.',
+            'instructions' => 'Cantidad total de unidades encontradas al sincronizar.<br><strong>Frontend:</strong> <code>{acf_wpdm_units_total}</code>',
             'readonly'     => 1,
         ];
     }
@@ -219,7 +224,7 @@ class SyncDataFieldGroup
             'label'        => 'Unidades por Estado',
             'name'         => 'wpdm_by_status',
             'type'         => 'repeater',
-            'instructions' => 'Conteo de unidades agrupadas por estado. Se actualiza al sincronizar.',
+            'instructions' => 'Conteo de unidades agrupadas por estado. Se actualiza al sincronizar.<br><strong>Frontend:</strong> <code>{acf_wpdm_by_status}</code>',
             'layout'       => 'table',
             'button_label' => '',
             'sub_fields'   => [
@@ -257,7 +262,7 @@ class SyncDataFieldGroup
             'label'        => 'Unidades por Tipo',
             'name'         => 'wpdm_by_type',
             'type'         => 'repeater',
-            'instructions' => 'Conteo de unidades agrupadas por tipo. Se actualiza al sincronizar.',
+            'instructions' => 'Conteo de unidades agrupadas por tipo. Se actualiza al sincronizar.<br><strong>Frontend:</strong> <code>{acf_wpdm_by_type}</code>',
             'layout'       => 'table',
             'button_label' => '',
             'sub_fields'   => [

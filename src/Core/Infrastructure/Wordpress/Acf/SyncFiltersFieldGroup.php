@@ -1,7 +1,5 @@
 <?php
 
-//TODO: AQUI CREA LA OPTIONS PAGE Y LOS FILTROS DE SINCRONIZACIÓN
-
 declare(strict_types=1);
 
 namespace WPDM\Core\Infrastructure\WordPress\Acf;
@@ -55,11 +53,13 @@ class SyncFiltersFieldGroup
         }
 
         acf_add_options_sub_page([
-            'page_title'  => 'Filtros',
-            'menu_title'  => 'Filtros',
-            'menu_slug'   => self::MENU_SLUG,
-            'parent_slug' => 'wpdm-dashboard',
-            'capability'  => 'manage_options',
+            'page_title'      => 'Filtros',
+            'menu_title'      => 'Filtros',
+            'menu_slug'       => self::MENU_SLUG,
+            'parent_slug'     => 'wpdm-dashboard',
+            'capability'      => 'manage_options',
+            'update_button'   => 'Guardar',
+            'updated_message' => 'Filtros guardados correctamente',
         ]);
     }
 
@@ -90,27 +90,56 @@ class SyncFiltersFieldGroup
             'position'     => 'normal',
             'style'        => 'default',
             'menu_order'   => 0,
-            'instructions' => 'Selecciona qué estados y tipos de unidad se incluyen al sincronizar. Solo las unidades que coincidan con los valores seleccionados serán procesadas.',
+            'instructions' => 'Esto permite configurar a nivel general los parámetros para todos los proyectos. Si deseas definir de forma más específica los Estados y Tipos de Unidad que se sincronizarán por cada proyecto, desactiva la opción <strong>Habilitar Filtros Globales</strong>.',
             'fields'       => [
+                [
+                    'key'           => 'field_wpdm_enable_global_filters',
+                    'label'         => 'Habilitar Filtros Globales',
+                    'name'          => 'wpdm_enable_global_filters',
+                    'type'          => 'true_false',
+                    'instructions'  => 'Cuando está activado, los filtros configurados a continuación se aplicarán a todos los proyectos de forma global.',
+                    'default_value' => 1,
+                    'ui'            => 1,
+                    'ui_on_text'    => 'Activado',
+                    'ui_off_text'   => 'Desactivado',
+                ],
                 [
                     'key'           => 'field_wpdm_filter_statuses',
                     'label'         => 'Estados a incluir',
                     'name'          => 'wpdm_filter_statuses',
                     'type'          => 'checkbox',
-                    'instructions'  => 'Marca los estados de unidad que deseas incluir en la sincronización. Si no marcas ninguno, se incluirán todos. Los estados se descubren automáticamente al sincronizar.',
+                    'instructions'  => 'Marca los estados de unidad que deseas incluir en la sincronización. Si no marcas ninguno, se incluirán todos. <br> Los estados se descubren automáticamente al sincronizar.',
                     'choices'       => [],
                     'layout'        => 'horizontal',
                     'return_format' => 'value',
+                    'conditional_logic' => [
+                        [
+                            [
+                                'field'    => 'field_wpdm_enable_global_filters',
+                                'operator' => '==',
+                                'value'    => '1',
+                            ],
+                        ],
+                    ],
                 ],
                 [
                     'key'           => 'field_wpdm_filter_types',
                     'label'         => 'Tipos de unidad a incluir',
                     'name'          => 'wpdm_filter_types',
                     'type'          => 'checkbox',
-                    'instructions'  => 'Marca los tipos de unidad que deseas incluir en la sincronización. Si no marcas ninguno, se incluirán todos. Los tipos se cargan desde la API de SINCO.',
+                    'instructions'  => 'Marca los tipos de unidad que deseas incluir en la sincronización. Si no marcas ninguno, se incluirán todos. <br>Los tipos se cargan desde la API de SINCO.',
                     'choices'       => [],
                     'layout'        => 'horizontal',
                     'return_format' => 'value',
+                    'conditional_logic' => [
+                        [
+                            [
+                                'field'    => 'field_wpdm_enable_global_filters',
+                                'operator' => '==',
+                                'value'    => '1',
+                            ],
+                        ],
+                    ],
                 ],
             ],
         ]);
