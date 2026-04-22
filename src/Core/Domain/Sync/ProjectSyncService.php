@@ -9,6 +9,8 @@ use WPDM\Core\Infrastructure\Api\SincoApiClient;
 use WPDM\Core\Infrastructure\Database\WPDM_Database;
 use WPDM\Core\Infrastructure\WordPress\Acf\SyncCatalog;
 use WPDM\Core\Infrastructure\WordPress\Acf\SyncFiltersReader;
+use WPDM\Core\Infrastructure\WordPress\Cron\CronLock;
+use WPDM\Core\Infrastructure\WordPress\Cron\ProjectLock;
 use WPDM\Shared\Logger\WPDM_Logger;
 
 /**
@@ -156,13 +158,42 @@ class ProjectSyncService
      * Un proyecto se salta si su _wpdm_sync_status es 'pending' (el usuario
      * lo pausó manualmente). Los que estén en 'error' sí se reintentan.
      *
-     * @return array{processed:int, succeeded:int, failed:int, skipped:int, details:list<array{post_id:int,title:string,result:array<string,mixed>}>}
+     * @param CronLock|null $cronLock Lock del cron para renovar durante ejecuciones largas
+     * @return array{processed:int, succeeded:int, failed:int, skipped:int, details:list<array{post_id:int,title:string,result:array<string,mixed>}>, timeout:bool}
      */
-    public function syncAllActive(): array
+    public function syncAllActive(?CronLock $cronLock = null): array
     {
-        $report = ['processed' => 0, 'succeeded' => 0, 'failed' => 0, 'skipped' => 0, 'details' => []];
+        $report = ['processed' => 0, 'succeeded' => 0, 'failed' => 0, 'skipped' => 0, 'details' => [], 'timeout' => false];
+        $config = require WPDM_PATH . 'config/cron.php';
+        $lockTtl = (int) ($config['project_lock_ttl'] ?? 120);
+        $batchTimeout = (int) ($config['batch_sync_timeout'] ?? 240);
+        $renewThreshold = 60; // Renovar lock cada 60 segundos
+
+        $startTime = \microtime(true);
+        $lastRenew = $startTime;
 
         foreach ($this->projects->all() as $project) {
+            // Verificar timeout total del batch
+            $elapsed = \microtime(true) - $startTime;
+            if ($elapsed > $batchTimeout) {
+                $this->logger->warning(\sprintf(
+                    'SyncAll: timeout alcanzado (%.2fs > %ds). Procesados hasta ahora: %d ok, %d error, %d saltados.',
+                    $elapsed,
+                    $batchTimeout,
+                    $report['succeeded'],
+                    $report['failed'],
+                    $report['skipped']
+                ));
+                $report['timeout'] = true;
+                break;
+            }
+
+            // Renovar lock del cron si ha pasado tiempo suficiente
+            if ($cronLock !== null && (\microtime(true) - $lastRenew) > $renewThreshold) {
+                $cronLock->renew();
+                $lastRenew = \microtime(true);
+            }
+
             if (empty($project['id_projects'])) {
                 $report['skipped']++;
                 continue;
@@ -170,6 +201,18 @@ class ProjectSyncService
 
             $status = (string) \get_post_meta($project['post_id'], self::META_SYNC_STATUS, true);
             if ($status === WPDM_Database::SYNC_STATUS_PENDING) {
+                $report['skipped']++;
+                continue;
+            }
+
+            // Verificar si el proyecto está siendo sincronizado manualmente (lock activo)
+            $lock = new ProjectLock($project['post_id'], $lockTtl);
+            if ($lock->isLocked()) {
+                $this->logger->info(\sprintf(
+                    "SyncAll: proyecto '%s' (ID: %d) omitido - sincronización manual en curso.",
+                    $project['title'],
+                    $project['post_id']
+                ));
                 $report['skipped']++;
                 continue;
             }

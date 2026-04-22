@@ -77,7 +77,7 @@ class CronRunner
         $this->logger->info("Cron: iniciando ejecución {$type}.");
 
         try {
-            $report = $this->syncService->syncAllActive();
+            $report = $this->syncService->syncAllActive($this->lock);
             $stats = [
                 'processed' => (int) $report['processed'],
                 'succeeded' => (int) $report['succeeded'],
@@ -87,7 +87,11 @@ class CronRunner
 
             \update_option($this->settings->optionLastRun(), $startTs);
 
-            if ($stats['failed'] > 0) {
+            if ($report['timeout'] ?? false) {
+                $errorMsg = 'Timeout: la sincronización batch fue interrumpida por exceder el tiempo límite.';
+                \update_option($this->settings->optionLastError(), $errorMsg);
+                $success = false; // Timeout se considera error
+            } elseif ($stats['failed'] > 0) {
                 $errorMsg = \sprintf('%d proyecto(s) con error.', $stats['failed']);
                 \update_option($this->settings->optionLastError(), $errorMsg);
                 $success = true; // parcialmente OK, no consideramos error catastrófico
@@ -117,16 +121,36 @@ class CronRunner
     }
 
     /**
-     * Verifica cooldown por tipo. Si no hay cooldown activo, lo setea.
+     * Verifica cooldown por tipo usando operación atómica INSERT IGNORE.
+     * Si no hay cooldown activo, lo setea. Retorna true si se puede proceder.
      */
     private function checkCooldown(string $type, int $ttlSeconds): bool
     {
+        global $wpdb;
+
+        $table = $wpdb->prefix . 'options';
         $key = $this->settings->cooldownKey($type);
-        if (\get_transient($key)) {
+
+        // Limpiar cooldowns expirados (más viejos que el TTL).
+        $wpdb->query($wpdb->prepare(
+            "DELETE FROM {$table} WHERE option_name = %s AND option_value < %d",
+            $key,
+            \time() - $ttlSeconds
+        ));
+
+        // INSERT IGNORE: si ya existe la fila, no hace nada y retorna 0 filas afectadas.
+        // Esta operación es atómica y previene race conditions.
+        $inserted = $wpdb->query($wpdb->prepare(
+            "INSERT IGNORE INTO {$table} (option_name, option_value, autoload) VALUES (%s, %d, 'no')",
+            $key,
+            \time()
+        ));
+
+        if ((int) $inserted !== 1) {
             $this->logger->info("Cron {$type}: omitido por cooldown.");
             return false;
         }
-        \set_transient($key, \time(), $ttlSeconds);
+
         return true;
     }
 }
