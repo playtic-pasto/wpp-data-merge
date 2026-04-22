@@ -119,18 +119,32 @@ class SyncController
             $elapsed = \microtime(true) - $start;
             $lock->release();
 
-            // Registrar en historial
+            // Registrar en historial con formato estándar de stats
+            $stats = [
+                'processed' => 1, // Se procesó 1 proyecto
+                'succeeded' => $result['success'] ? 1 : 0,
+                'failed'    => $result['success'] ? 0 : 1,
+                'skipped'   => 0,
+            ];
+
+            $context = [
+                'post_id' => $postId,
+                'title'   => $postTitle,
+                'user'    => $userLabel,
+            ];
+
+            // Agregar aggregates al context si están disponibles (unidades procesadas, etc.)
+            if (!empty($result['aggregates'])) {
+                $context['aggregates'] = $result['aggregates'];
+            }
+
             $this->history->add(
                 $startTs,
                 'project',
                 $result['success'] ? 'success' : 'error',
                 $elapsed,
-                $result['aggregates'] ?? [],
-                [
-                    'post_id' => $postId,
-                    'title'   => $postTitle,
-                    'user'    => $userLabel,
-                ]
+                $stats,
+                $context
             );
         }
 

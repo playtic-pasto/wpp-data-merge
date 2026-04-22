@@ -135,6 +135,13 @@
     border: 1px solid #e0e0e0;
     border-radius: 8px;
     padding: 24px;
+    overflow-x: hidden;
+}
+
+@media (max-width: 782px) {
+    .wpdm-card {
+        padding: 16px;
+    }
 }
 
 .wpdm-card h2 {
@@ -152,6 +159,25 @@
     font-size: 18px;
     width: 18px;
     height: 18px;
+}
+
+.wpdm-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.wpdm-card-header h2 {
+    margin: 0;
+}
+
+.wpdm-card-action {
+    margin: 0;
+}
+
+.wpdm-clear-btn {
+    font-size: 0.85em;
 }
 
 /* =========================================================================
@@ -221,10 +247,41 @@
    History table — historial de sincronizaciones
    ========================================================================= */
 
+.wpdm-table-responsive {
+    overflow-x: auto;
+    overflow-y: visible;
+    -webkit-overflow-scrolling: touch;
+    margin: 16px -24px 0 -24px;
+    padding: 0 24px;
+    width: auto;
+    display: block;
+}
+
+@media (max-width: 782px) {
+    .wpdm-table-responsive {
+        margin: 16px -16px 0 -16px;
+        padding: 0 16px;
+    }
+}
+
 .wpdm-history-table {
     width: 100%;
     border-collapse: collapse;
     font-size: 0.88em;
+    min-width: 900px;
+    table-layout: auto;
+}
+
+@media (max-width: 1200px) {
+    .wpdm-history-table {
+        min-width: 800px;
+    }
+}
+
+@media (max-width: 900px) {
+    .wpdm-history-table {
+        min-width: 700px;
+    }
 }
 
 .wpdm-history-table thead th {
@@ -236,6 +293,7 @@
     font-size: 0.85em;
     text-transform: uppercase;
     letter-spacing: 0.3px;
+    white-space: nowrap;
 }
 
 .wpdm-history-table tbody td {
@@ -252,10 +310,18 @@
     background: #f9f9f9;
 }
 
+.wpdm-history-detail {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: nowrap;
+}
+
 .wpdm-history-stats {
     display: inline-flex;
     gap: 8px;
     font-size: 0.9em;
+    flex-shrink: 0;
 }
 
 .wpdm-history-stats span {
@@ -267,6 +333,34 @@
 .wpdm-history-stats .ok    { color: #00a32a; }
 .wpdm-history-stats .err   { color: #d63638; }
 .wpdm-history-stats .skip  { color: #646970; }
+
+.wpdm-history-separator {
+    color: #ddd;
+    flex-shrink: 0;
+}
+
+.wpdm-project-link {
+    font-size: 0.9em;
+    text-decoration: none;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: #2271b1;
+}
+
+.wpdm-project-link:hover {
+    color: #135e96;
+    text-decoration: underline;
+}
+
+.wpdm-project-link .dashicons {
+    font-size: 1em;
+    width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+}
 
 /* =========================================================================
    Alert — mensaje de error

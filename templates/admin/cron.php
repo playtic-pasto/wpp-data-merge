@@ -160,17 +160,17 @@ $minutes    = $settings->intervalMinutes();
     <!-- Historial -->
     <div class="wpdm-cards wpdm-cards--full">
         <div class="wpdm-card">
-            <h2 style="display: flex; justify-content: space-between; align-items: center;">
-                <span><span class="dashicons dashicons-backup"></span> Historial de ejecuciones</span>
+            <div class="wpdm-card-header">
+                <h2><span class="dashicons dashicons-backup"></span> Historial de ejecuciones</h2>
                 <?php if (!empty($history)): ?>
-                    <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="margin: 0;">
+                    <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="wpdm-card-action">
                         <input type="hidden" name="action" value="<?php echo esc_attr($actions['clear']); ?>" />
                         <?php wp_nonce_field($actions['clear']); ?>
-                        <button type="submit" class="button button-link-delete" style="font-size: 0.85em;"
+                        <button type="submit" class="button button-link-delete wpdm-clear-btn"
                                 onclick="return confirm('¿Limpiar historial?');">Limpiar</button>
                     </form>
                 <?php endif; ?>
-            </h2>
+            </div>
 
             <?php if (empty($history)): ?>
                 <div class="wpdm-empty">
@@ -178,7 +178,8 @@ $minutes    = $settings->intervalMinutes();
                     <p>No hay ejecuciones registradas.</p>
                 </div>
             <?php else: ?>
-                <table class="wpdm-history-table">
+                <div class="wpdm-table-responsive">
+                    <table class="wpdm-history-table">
                     <thead>
                         <tr>
                             <th>Fecha</th>
@@ -206,16 +207,38 @@ $minutes    = $settings->intervalMinutes();
                                 <td><?php echo esc_html(number_format((float) ($row['duration'] ?? 0), 2)); ?>s</td>
                                 <td><?php echo esc_html((string) (int) ($stats['processed'] ?? 0)); ?></td>
                                 <td>
-                                    <span class="wpdm-history-stats">
-                                        <span class="ok"><?php echo (int) ($stats['succeeded'] ?? 0); ?> ok</span>
-                                        <span class="err"><?php echo (int) ($stats['failed'] ?? 0); ?> err</span>
-                                        <span class="skip"><?php echo (int) ($stats['skipped'] ?? 0); ?> skip</span>
-                                    </span>
+                                    <div class="wpdm-history-detail">
+                                        <span class="wpdm-history-stats">
+                                            <span class="ok"><?php echo (int) ($stats['succeeded'] ?? 0); ?> ok</span>
+                                            <span class="err"><?php echo (int) ($stats['failed'] ?? 0); ?> err</span>
+                                            <span class="skip"><?php echo (int) ($stats['skipped'] ?? 0); ?> skip</span>
+                                        </span>
+                                        <?php 
+                                        // Si es tipo 'project', mostrar enlace al proyecto
+                                        if (($row['type'] ?? '') === 'project' && !empty($row['context']['post_id'])): 
+                                            $postId = (int) $row['context']['post_id'];
+                                            $title = $row['context']['title'] ?? "Proyecto #{$postId}";
+                                            $editUrl = get_edit_post_link($postId);
+                                            if ($editUrl):
+                                        ?>
+                                            <span class="wpdm-history-separator">•</span>
+                                            <a href="<?php echo esc_url($editUrl); ?>" 
+                                               class="wpdm-project-link"
+                                               title="Ver proyecto: <?php echo esc_attr($title); ?>">
+                                                <span class="dashicons dashicons-visibility"></span>
+                                                <span><?php echo esc_html($title); ?></span>
+                                            </a>
+                                        <?php 
+                                            endif;
+                                        endif; 
+                                        ?>
+                                    </div>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
                     </tbody>
                 </table>
+                </div>
             <?php endif; ?>
         </div>
     </div>
