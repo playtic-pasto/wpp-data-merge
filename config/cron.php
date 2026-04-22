@@ -22,6 +22,15 @@ return [
     // TTL del lock atómico (segundos). Si una ejecución muere sin liberar, se recupera tras este tiempo.
     'lock_ttl'                => 300,
 
+    // TTL del lock de proyecto individual (segundos). Más corto que el cron porque una sync por proyecto es más rápida.
+    'project_lock_ttl'        => 120,
+
+    // Cooldown para sincronización manual por proyecto (segundos). Evita spam del botón "Sincronizar ahora".
+    'project_sync_cooldown'   => 60,
+
+    // Timeout total para syncAllActive (segundos). Debe ser menor que lock_ttl para evitar que el lock expire.
+    'batch_sync_timeout'      => 240,
+
     // Claves de wp_options utilizadas por el cron.
     'option_enabled'          => 'wpdm_cron_enabled',
     'option_interval'         => 'wpdm_cron_interval_minutes',

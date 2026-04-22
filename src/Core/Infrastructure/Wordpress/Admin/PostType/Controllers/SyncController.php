@@ -7,6 +7,11 @@ namespace WPDM\Core\Infrastructure\WordPress\Admin\PostType\Controllers;
 use WPDM\Core\Domain\Projects\ProjectsRepository;
 use WPDM\Core\Domain\Sync\ProjectSyncService;
 use WPDM\Core\Infrastructure\WordPress\Admin\Support\SyncUrlBuilder;
+use WPDM\Core\Infrastructure\WordPress\Cron\CronHistory;
+use WPDM\Core\Infrastructure\WordPress\Cron\CronSettings;
+use WPDM\Core\Infrastructure\WordPress\Cron\ProjectLock;
+use WPDM\Shared\Logger\WPDM_Logger;
+use WPDM\Shared\Helpers\UserHelper;
 
 /**
  * Controlador que atiende la acción admin-post de sincronización y muestra
@@ -19,12 +24,20 @@ use WPDM\Core\Infrastructure\WordPress\Admin\Support\SyncUrlBuilder;
 class SyncController
 {
     private const NOTICE_PREFIX = 'wpdm_project_sync_notice_';
+    private const COOLDOWN_PREFIX = 'wpdm_project_sync_cooldown_';
 
     private ProjectSyncService $service;
+    private WPDM_Logger $logger;
+    private CronHistory $history;
+    private array $config;
 
-    public function __construct(?ProjectSyncService $service = null)
+    public function __construct(?ProjectSyncService $service = null, ?WPDM_Logger $logger = null, ?CronHistory $history = null)
     {
         $this->service = $service ?? new ProjectSyncService();
+        $this->logger = $logger ?? new WPDM_Logger(WPDM_PATH);
+        $this->config = require WPDM_PATH . 'config/cron.php';
+        $settings = new CronSettings();
+        $this->history = $history ?? new CronHistory($settings);
     }
 
     public function register(): void
@@ -48,12 +61,92 @@ class SyncController
 
         \check_admin_referer(SyncUrlBuilder::nonceAction($postId));
 
-        $result = $this->service->syncPost($postId);
+        $postTitle = \get_the_title($postId) ?: "Post #{$postId}";
+        $userLabel = UserHelper::getCurrentUserLabel();
 
-        \set_transient($this->noticeKey(), [
-            'type'    => $result['success'] ? 'success' : 'error',
-            'message' => $result['message'],
-        ], 30);
+        // Verificar cooldown para evitar spam del botón
+        if (!$this->checkCooldown($postId)) {
+            $cooldownSeconds = (int) $this->config['project_sync_cooldown'];
+            $this->logger->info("Sync manual: omitido por cooldown para proyecto '{$postTitle}' (ID: {$postId})");
+            \set_transient($this->noticeKey(), [
+                'type'    => 'warning',
+                'message' => \sprintf('Por favor espera %d segundos antes de sincronizar nuevamente.', $cooldownSeconds),
+            ], 30);
+            if ($redir === '') {
+                $redir = \admin_url('edit.php?post_type=' . ProjectsRepository::POST_TYPE);
+            }
+            \wp_safe_redirect($redir);
+            exit;
+        }
+
+        // Adquirir lock atómico a nivel de proyecto
+        $lockTtl = (int) ($this->config['project_lock_ttl'] ?? 120);
+        $lock = new ProjectLock($postId, $lockTtl);
+
+        if (!$lock->acquire()) {
+            $this->logger->warning("Sync manual: omitido para proyecto '{$postTitle}' (ID: {$postId}) - otra sincronización en curso.");
+            \set_transient($this->noticeKey(), [
+                'type'    => 'warning',
+                'message' => 'Sincronización ya en curso para este proyecto. Por favor espera.',
+            ], 30);
+            if ($redir === '') {
+                $redir = \admin_url('edit.php?post_type=' . ProjectsRepository::POST_TYPE);
+            }
+            \wp_safe_redirect($redir);
+            exit;
+        }
+
+        $this->logger->info("Sync manual: iniciando para proyecto '{$postTitle}' (ID: {$postId}) por {$userLabel}");
+
+        $start = \microtime(true);
+        $startTs = \time();
+        $result = ['success' => false, 'message' => ''];
+
+        try {
+            $result = $this->service->syncPost($postId);
+
+            if ($result['success']) {
+                $this->logger->info("Sync manual: completado para proyecto '{$postTitle}' (ID: {$postId}) - {$result['message']}");
+            } else {
+                $this->logger->error("Sync manual: error en proyecto '{$postTitle}' (ID: {$postId}) - {$result['message']}");
+            }
+
+            \set_transient($this->noticeKey(), [
+                'type'    => $result['success'] ? 'success' : 'error',
+                'message' => $result['message'],
+            ], 30);
+        } finally {
+            $elapsed = \microtime(true) - $start;
+            $lock->release();
+
+            // Registrar en historial con formato estándar de stats
+            $stats = [
+                'processed' => 1, // Se procesó 1 proyecto
+                'succeeded' => $result['success'] ? 1 : 0,
+                'failed'    => $result['success'] ? 0 : 1,
+                'skipped'   => 0,
+            ];
+
+            $context = [
+                'post_id' => $postId,
+                'title'   => $postTitle,
+                'user'    => $userLabel,
+            ];
+
+            // Agregar aggregates al context si están disponibles (unidades procesadas, etc.)
+            if (!empty($result['aggregates'])) {
+                $context['aggregates'] = $result['aggregates'];
+            }
+
+            $this->history->add(
+                $startTs,
+                'project',
+                $result['success'] ? 'success' : 'error',
+                $elapsed,
+                $stats,
+                $context
+            );
+        }
 
         if ($redir === '') {
             $redir = \admin_url('edit.php?post_type=' . ProjectsRepository::POST_TYPE);
@@ -79,5 +172,20 @@ class SyncController
     private function noticeKey(): string
     {
         return self::NOTICE_PREFIX . \get_current_user_id();
+    }
+
+    /**
+     * Verifica cooldown por proyecto. Si no hay cooldown activo, lo setea.
+     * Retorna true si se puede proceder, false si debe esperar.
+     */
+    private function checkCooldown(int $postId): bool
+    {
+        $key = self::COOLDOWN_PREFIX . $postId;
+        if (\get_transient($key)) {
+            return false;
+        }
+        $ttl = (int) ($this->config['project_sync_cooldown'] ?? 60);
+        \set_transient($key, \time(), $ttl);
+        return true;
     }
 }

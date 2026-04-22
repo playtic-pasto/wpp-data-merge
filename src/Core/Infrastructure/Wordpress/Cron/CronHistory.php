@@ -16,20 +16,28 @@ class CronHistory
     public function __construct(private CronSettings $settings) {}
 
     /**
-     * @param 'auto'|'manual'|'api' $type
+     * @param 'auto'|'manual'|'api'|'project' $type
      * @param 'success'|'error' $status
      * @param array<string, mixed> $stats
+     * @param array<string, mixed> $context Información adicional (ej: post_id, title para tipo 'project')
      */
-    public function add(int $timestamp, string $type, string $status, float $durationSeconds, array $stats = []): void
+    public function add(int $timestamp, string $type, string $status, float $durationSeconds, array $stats = [], array $context = []): void
     {
         $history = $this->all();
-        $history[] = [
+        $entry = [
             'timestamp' => $timestamp,
             'type'      => $type,
             'status'    => $status,
             'duration'  => \round($durationSeconds, 2),
             'stats'     => $stats,
         ];
+
+        // Agregar contexto adicional si se proporcionó
+        if (!empty($context)) {
+            $entry['context'] = $context;
+        }
+
+        $history[] = $entry;
 
         $max = $this->settings->historySize();
         if (\count($history) > $max) {
