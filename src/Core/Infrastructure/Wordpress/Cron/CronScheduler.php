@@ -84,6 +84,7 @@ class CronScheduler
         }
         \wp_schedule_event(\time() + $this->settings->intervalSeconds(), $this->settings->scheduleId(), $hook);
         $this->logger->info('Cron reprogramado.');
+        $this->logger->info('-----------');
     }
 
     /**

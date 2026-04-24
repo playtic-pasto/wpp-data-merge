@@ -121,6 +121,27 @@ class CronRunner
     }
 
     /**
+     * Retorna los segundos restantes del cooldown manual (0 si no hay cooldown activo).
+     */
+    public function manualCooldownRemaining(): int
+    {
+        global $wpdb;
+
+        $key   = $this->settings->cooldownKey('manual');
+        $ttl   = 5 * \MINUTE_IN_SECONDS;
+        $stored = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT option_value FROM {$wpdb->prefix}options WHERE option_name = %s",
+            $key
+        ));
+
+        if ($stored === 0) {
+            return 0;
+        }
+
+        return \max(0, ($stored + $ttl) - \time());
+    }
+
+    /**
      * Verifica cooldown por tipo usando operación atómica INSERT IGNORE.
      * Si no hay cooldown activo, lo setea. Retorna true si se puede proceder.
      */
