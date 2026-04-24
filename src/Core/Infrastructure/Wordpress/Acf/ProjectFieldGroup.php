@@ -181,6 +181,7 @@ class ProjectFieldGroup
             'type'          => 'checkbox',
             'instructions'  => 'Marca los estados de unidad que deseas incluir en la sincronización de este proyecto. Si no marcas ninguno, se incluirán todos.<br><strong>Nota:</strong> Este filtro solo se aplica cuando los Filtros Globales están desactivados.',
             'choices'       => [],
+            'default_value' => ['DISPONIBLE', 'OPCIONADO/RESERVADO'],
             'layout'        => 'horizontal',
             'return_format' => 'value',
         ];
@@ -203,6 +204,7 @@ class ProjectFieldGroup
             'type'          => 'checkbox',
             'instructions'  => 'Marca los tipos de unidad que deseas incluir en la sincronización de este proyecto. Si no marcas ninguno, se incluirán todos.<br><strong>Nota:</strong> Este filtro solo se aplica cuando los Filtros Globales están desactivados.',
             'choices'       => [],
+            'default_value' => ['Apartamento'],
             'layout'        => 'horizontal',
             'return_format' => 'value',
         ];

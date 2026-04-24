@@ -68,9 +68,20 @@ class CronController
     {
         $this->assertAdmin(self::ACTION_RUN);
         $ok = $this->runner->runManual();
-        $this->storeNotice($ok ? 'success' : 'warning', $ok
-            ? 'Cron ejecutado manualmente.'
-            : 'No se pudo ejecutar (cooldown o lock activo).');
+
+        if ($ok) {
+            $this->storeNotice('success', 'Cron ejecutado manualmente.');
+        } else {
+            $remaining = $this->runner->manualCooldownRemaining();
+            $message   = $remaining > 0
+                ? \sprintf(
+                    'No se pudo ejecutar (cooldown activo). Intenta nuevamente en %s.',
+                    $this->formatSeconds($remaining)
+                )
+                : 'No se pudo ejecutar (otra sincronización en curso).';
+            $this->storeNotice('warning', $message);
+        }
+
         $this->redirect();
     }
 
@@ -104,6 +115,22 @@ class CronController
         };
         echo '<div class="notice ' . \esc_attr($cls) . ' is-dismissible"><p>'
             . \esc_html($notice['message'] ?? '') . '</p></div>';
+    }
+
+    private function formatSeconds(int $seconds): string
+    {
+        $minutes = (int) \floor($seconds / 60);
+        $secs    = $seconds % 60;
+
+        if ($minutes > 0 && $secs > 0) {
+            return "{$minutes} min {$secs} seg";
+        }
+
+        if ($minutes > 0) {
+            return "{$minutes} min";
+        }
+
+        return "{$secs} seg";
     }
 
     private function assertAdmin(string $action): void
