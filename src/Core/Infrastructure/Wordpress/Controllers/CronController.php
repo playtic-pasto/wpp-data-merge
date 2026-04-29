@@ -9,6 +9,7 @@ use WPDM\Core\Infrastructure\WordPress\Cron\CronRestController;
 use WPDM\Core\Infrastructure\WordPress\Cron\CronRunner;
 use WPDM\Core\Infrastructure\WordPress\Cron\CronScheduler;
 use WPDM\Core\Infrastructure\WordPress\Cron\CronSettings;
+use WPDM\Shared\Logger\WPDM_Logger;
 
 /**
  * Atiende las acciones admin-post de la página Cron Job: guardar ajustes,
@@ -31,7 +32,10 @@ class CronController
         private CronScheduler $scheduler,
         private CronRunner $runner,
         private CronHistory $history,
-    ) {}
+        private ?WPDM_Logger $logger = null,
+    ) {
+        $this->logger ??= new WPDM_Logger(WPDM_PATH);
+    }
 
     public function register(): void
     {
@@ -67,21 +71,42 @@ class CronController
     public function handleRun(): void
     {
         $this->assertAdmin(self::ACTION_RUN);
-        $ok = $this->runner->runManual();
+        
 
-        if ($ok) {
-            $this->storeNotice('success', 'Cron ejecutado manualmente.');
-        } else {
+        // Verificar si ya hay una sincronización en progreso
+        if ($this->runner->isRunning()) {
             $remaining = $this->runner->manualCooldownRemaining();
             $message   = $remaining > 0
                 ? \sprintf(
                     'No se pudo ejecutar (cooldown activo). Intenta nuevamente en %s.',
                     $this->formatSeconds($remaining)
                 )
-                : 'No se pudo ejecutar (otra sincronización en curso).';
+                : 'No se pudo ejecutar (sincronización en curso).';
+            $this->logger->warning("CronController: ejecución manual bloqueada - {$message}");
             $this->storeNotice('warning', $message);
+            $this->redirect();
+            return;
         }
 
+        $this->logger->info('CronController: validaciones OK - programando ejecución en shutdown.');
+
+        // Ejecutar en shutdown hook para no bloquear al usuario
+        \add_action('shutdown', function() {
+            // Ignorar abortos de conexión del usuario
+            \ignore_user_abort(true);
+            
+            
+            // Ejecutar sincronización directamente
+            $success = $this->runner->runManual();
+            
+            if ($success) {
+                $this->logger->info('CronController: sync manual completada exitosamente.');
+            } else {
+                $this->logger->error('CronController: sync manual falló.');
+            }
+        });
+
+        $this->storeNotice('success', 'Sincronización Manual iniciada en segundo plano. Refresca la página en unos momentos para ver el resultado.');
         $this->redirect();
     }
 

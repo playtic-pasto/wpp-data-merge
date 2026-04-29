@@ -72,4 +72,31 @@ class CronLock
             $this->settings->optionLock()
         ));
     }
+
+    /**
+     * Verifica si el lock está actualmente activo (otra ejecución en curso).
+     */
+    public function isLocked(): bool
+    {
+        global $wpdb;
+
+        $table  = $wpdb->prefix . 'options';
+        $option = $this->settings->optionLock();
+        $ttl    = $this->settings->lockTtl();
+
+        // Limpiar locks expirados primero
+        $wpdb->query($wpdb->prepare(
+            "DELETE FROM {$table} WHERE option_name = %s AND option_value < %d",
+            $option,
+            \time() - $ttl
+        ));
+
+        // Verificar si existe un lock válido
+        $exists = $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM {$table} WHERE option_name = %s",
+            $option
+        ));
+
+        return (int) $exists > 0;
+    }
 }

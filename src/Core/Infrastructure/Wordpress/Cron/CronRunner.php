@@ -142,6 +142,20 @@ class CronRunner
     }
 
     /**
+     * Verifica si hay una sincronización actualmente en ejecución o en cooldown.
+     */
+    public function isRunning(): bool
+    {
+        // Primero verificar si hay un lock activo (ejecución en curso)
+        if ($this->lock->isLocked()) {
+            return true;
+        }
+
+        // Luego verificar si hay cooldown manual activo
+        return $this->manualCooldownRemaining() > 0;
+    }
+
+    /**
      * Verifica cooldown por tipo usando operación atómica INSERT IGNORE.
      * Si no hay cooldown activo, lo setea. Retorna true si se puede proceder.
      */
