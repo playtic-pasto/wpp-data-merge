@@ -1,11 +1,11 @@
 <?php
 /*
     * Plugin Name: WPP Data Merge
-    * Description: Conecta los datos de CINMCO ERP y sincroniza post creando o actualizando en informacion requerida en WP.
+    * Description: Conecta los datos de SINCO ERP y sincroniza post creando o actualizando en informacion requerida en WP.
     * Plugin URI: https://www.instagram.com/playtic_pasto/
-    * Version: 0.0.1-alpha.2
+    * Version: 0.1.1
     * Author: PlayTIC
-    * Author URI: hhttps://www.instagram.com/playtic_pasto/
+    * Author URI: https://www.instagram.com/playtic_pasto/
     * Licence: GPLv2 or later
     * Text Domain: wpp-data-merge
  */
