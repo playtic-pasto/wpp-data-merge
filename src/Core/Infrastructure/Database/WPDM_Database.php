@@ -5,34 +5,39 @@ declare(strict_types=1);
 namespace WPDM\Core\Infrastructure\Database;
 
 /**
- * Permite gestionar la base de datos para el plugin WP Data Merge, incluyendo la creación de tablas necesarias para almacenar los datos importados desde el endpoint externo.
- * 
+ * Migraciones de base de datos del plugin. Actualmente no se crean tablas custom
+ * porque los datos agregados se almacenan como post_meta del CPT "proyecto".
+ *
+ * Se mantienen los nombres constantes por compatibilidad y por si se retoma el
+ * almacenamiento relacional.
+ *
  * @name WPDM_Database
  * @package WPDM\Core\Infrastructure\Database
  * @since 1.0.0
  */
 class WPDM_Database
 {
+    public const SYNC_STATUS_ACTIVE  = 'active';
+    public const SYNC_STATUS_PENDING = 'pending';
+    public const SYNC_STATUS_ERROR   = 'error';
+
+    /** @var list<string> */
+    public const SYNC_STATUSES = [
+        self::SYNC_STATUS_ACTIVE,
+        self::SYNC_STATUS_PENDING,
+        self::SYNC_STATUS_ERROR,
+    ];
 
     /**
-     * Ejecuta las migraciones necesarias para crear las tablas de la base de datos utilizadas por el plugin WP Data Merge.
-     * @return void
-     * @access public
+     * No crea tablas. Se mantiene idempotente para futuras migraciones.
      */
     public static function migrate(): void
     {
-        global $wpdb;
+        // Intencionalmente vacío: toda la persistencia es vía post_meta.
+    }
 
-        $table = $wpdb->prefix . 'wpdm_data';
-
-        $sql = "CREATE TABLE $table (
-            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-            external_id VARCHAR(100) NOT NULL,
-            data LONGTEXT NOT NULL,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )";
-
-        require_once ABSPATH . 'wp-admin/includes/upgrade.php';
-        dbDelta($sql);
+    public static function isValidSyncStatus(string $status): bool
+    {
+        return \in_array($status, self::SYNC_STATUSES, true);
     }
 }

@@ -1,132 +1,338 @@
 <?php
 if (!defined('ABSPATH')) exit;
 
-$server_time = current_time('Y-m-d H:i:s');
-$timezone     = wp_timezone_string();
+use WPDM\Core\Infrastructure\WordPress\Admin\Support\Formatter;
+
+/** @var \WPDM\Core\Infrastructure\WordPress\Cron\CronSettings $settings */
+/** @var int|null $nextRun */
+/** @var int $lastRun */
+/** @var string $lastError */
+/** @var list<array<string, mixed>> $history */
+/** @var string $token */
+/** @var string $endpoint */
+/** @var list<array{project:array<string,mixed>, error:string}> $errors */
+/** @var array<string, string> $actions */
+/** @var bool $isRunning */
+/** @var int $cooldownRemaining */
+
+$serverTime = current_time('Y-m-d H:i:s');
+$timezone   = wp_timezone_string();
+$enabled    = $settings->isEnabled();
+$minutes    = $settings->intervalMinutes();
 ?>
 <div class="wrap wpdm-wrap">
-    <h1>Cron Job — Sincronización Automática</h1>
-    <p>Administra la tarea programada que sincroniza los datos desde el ERP.</p>
+    <h1>Cron Job</h1>
+    <p class="wpdm-subtitle">Realiza la sincronización automática de proyectos desde SINCO</p>
 
-    <!-- Configuración del Cron -->
-    <div class="wpdm-section">
-        <h2>Configuración</h2>
-        <form method="post" action="">
-            <table class="form-table wpdm-form-table">
+    <!-- Stats rápidas -->
+    <div class="wpdm-stats">
+        <div class="wpdm-stat">
+            <div class="wpdm-stat-icon <?php echo $enabled ? 'wpdm-stat-icon--green' : 'wpdm-stat-icon--red'; ?>">
+                <span class="dashicons <?php echo $enabled ? 'dashicons-yes-alt' : 'dashicons-dismiss'; ?>"></span>
+            </div>
+            <div class="wpdm-stat-content">
+                <span class="wpdm-stat-value wpdm-stat-value--small"><?php echo $enabled ? 'Activo' : 'Inactivo'; ?></span>
+                <span class="wpdm-stat-label">Estado CronJob</span>
+            </div>
+        </div>
+        <div class="wpdm-stat">
+            <div class="wpdm-stat-icon wpdm-stat-icon--blue">
+                <span class="dashicons dashicons-clock"></span>
+            </div>
+            <div class="wpdm-stat-content">
+                <span class="wpdm-stat-value wpdm-stat-value--small"><?php echo esc_html(Formatter::timestamp($lastRun ?: null)); ?></span>
+                <span class="wpdm-stat-label">Última ejecución</span>
+            </div>
+        </div>
+        <div class="wpdm-stat">
+            <div class="wpdm-stat-icon wpdm-stat-icon--yellow">
+                <span class="dashicons dashicons-calendar-alt"></span>
+            </div>
+            <div class="wpdm-stat-content">
+                <span class="wpdm-stat-value wpdm-stat-value--small"><?php echo esc_html(Formatter::timestamp($nextRun)); ?></span>
+                <span class="wpdm-stat-label">Próxima ejecución</span>
+            </div>
+        </div>
+        <div class="wpdm-stat">
+            <div class="wpdm-stat-icon wpdm-stat-icon--blue">
+                <span class="dashicons dashicons-update"></span>
+            </div>
+            <div class="wpdm-stat-content">
+                <span class="wpdm-stat-value"><?php echo esc_html((string) $minutes); ?></span>
+                <span class="wpdm-stat-label">Intervalo (min)</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="wpdm-cards">
+        <!-- Configuración -->
+        <div class="wpdm-card">
+            <h2><span class="dashicons dashicons-admin-settings"></span> Configuración</h2>
+            <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
+                <input type="hidden" name="action" value="<?php echo esc_attr($actions['save']); ?>" />
+                <?php wp_nonce_field($actions['save']); ?>
+
+                <table class="wpdm-status-table">
+                    <tr>
+                        <th>Activar</th>
+                        <td>
+                            <label>
+                                <input type="checkbox" name="wpdm_cron_enabled" value="1" <?php checked($enabled); ?> />
+                                Sincronización automática
+                            </label>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th><label for="wpdm_cron_interval_minutes">Intervalo</label></th>
+                        <td>
+                            <input type="number" min="1" max="10080" step="1"
+                                   id="wpdm_cron_interval_minutes"
+                                   name="wpdm_cron_interval_minutes"
+                                   value="<?php echo esc_attr((string) $minutes); ?>"
+                                   class="small-text" /> minutos
+                        </td>
+                    </tr>
+                </table>
+
+                <div style="display: flex; gap: 8px; margin-top: 16px;">
+                    <?php submit_button('Guardar', 'primary', 'submit', false); ?>
+                </div>
+            </form>
+
+            <hr style="border: none; border-top: 1px solid #f0f0f1; margin: 20px 0;" />
+
+            <?php if ($isRunning): ?>
+                <div class="wpdm-alert wpdm-alert--info" style="margin-bottom: 16px;">
+                    <span class="dashicons dashicons-update" style="animation: rotation 2s infinite linear;"></span>
+                    <strong>Sincronización en progreso...</strong> 
+                    <?php if ($cooldownRemaining > 0): ?>
+                        Tiempo restante estimado: <?php echo esc_html(gmdate('i:s', $cooldownRemaining)); ?>
+                    <?php endif; ?>
+                    <br><small>Regresa en un momento para ver el resultado de la sincronización.</small>
+                </div>
+            <?php endif; ?>
+
+            <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" 
+                  style="display:inline-block;" 
+                  id="wpdm-manual-run-form">
+                <input type="hidden" name="action" value="<?php echo esc_attr($actions['run']); ?>" />
+                <?php wp_nonce_field($actions['run']); ?>
+                <button type="submit" 
+                        class="button button-secondary" 
+                        id="wpdm-run-button"
+                        <?php echo $isRunning ? 'disabled' : ''; ?>
+                        style="<?php echo $isRunning ? 'opacity: 0.5; cursor: not-allowed;' : ''; ?>">
+                    <span class="dashicons dashicons-update" id="wpdm-run-spinner" style="display:none;"></span>
+                    <span id="wpdm-run-text">Ejecutar ahora</span>
+                </button>
+            </form>
+
+            <?php if ($lastError !== ''): ?>
+                <div class="wpdm-alert wpdm-alert--error" style="margin-top: 16px;">
+                    <strong>Último error:</strong> <?php echo esc_html($lastError); ?>
+                </div>
+            <?php endif; ?>
+        </div>
+
+        <!-- Endpoint REST -->
+        <div class="wpdm-card">
+            <h2><span class="dashicons dashicons-rest-api"></span> Endpoint REST</h2>
+            <p style="color: #646970; margin-top: 0;">Para cron externo (wget/curl) cuando WP-Cron no sea fiable.</p>
+
+            <table class="wpdm-status-table">
                 <tr>
-                    <th scope="row">Estado</th>
-                    <td>
-                        <label>
-                            <input type="checkbox" name="wpdm_cron_active" value="1" disabled />
-                            Activar sincronización automática
-                        </label>
-                        <p class="description">Al activar, el cron se ejecutará según el intervalo configurado.</p>
-                    </td>
+                    <th>URL</th>
+                    <td><code style="font-size: 0.85em; word-break: break-all;"><?php echo esc_html($endpoint); ?></code></td>
                 </tr>
                 <tr>
-                    <th scope="row">
-                        <label for="wpdm_cron_name">Nombre de la tarea</label>
-                    </th>
-                    <td>
-                        <input
-                            type="text"
-                            id="wpdm_cron_name"
-                            name="wpdm_cron_name"
-                            value="wpdm_cron_sync"
-                            class="regular-text"
-                            readonly
-                        />
-                        <p class="description">Identificador interno de la tarea programada.</p>
-                    </td>
+                    <th>Auth</th>
+                    <td><code style="font-size: 0.85em;">X-WPDM-Token: &lt;token&gt;</code></td>
                 </tr>
                 <tr>
-                    <th scope="row">
-                        <label for="wpdm_cron_interval">Intervalo de ejecución</label>
-                    </th>
+                    <th>Token</th>
                     <td>
-                        <select id="wpdm_cron_interval" name="wpdm_cron_interval" disabled>
-                            <option value="every_5_minutes">Cada 5 minutos</option>
-                            <option value="every_15_minutes">Cada 15 minutos</option>
-                            <option value="every_30_minutes">Cada 30 minutos</option>
-                            <option value="hourly" selected>Cada hora</option>
-                            <option value="twicedaily">Dos veces al día</option>
-                            <option value="daily">Diario</option>
-                        </select>
-                        <p class="description">Frecuencia con la que se ejecutará la sincronización.</p>
+                        <?php if ($token !== ''): ?>
+                            <code style="font-size: 0.85em; user-select: all;"><?php echo esc_html($token); ?></code>
+                        <?php else: ?>
+                            <em style="color: #b45309;">No generado</em>
+                        <?php endif; ?>
                     </td>
                 </tr>
             </table>
 
-            <?php submit_button('Guardar configuración', 'primary', 'wpdm_save_cron', true, ['disabled' => 'disabled']); ?>
-            <p class="description">La configuración del cron estará disponible próximamente.</p>
-        </form>
+            <div style="margin-top: 16px;">
+                <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="display:inline-block;">
+                    <input type="hidden" name="action" value="<?php echo esc_attr($actions['token']); ?>" />
+                    <?php wp_nonce_field($actions['token']); ?>
+                    <button type="submit" class="button" onclick="return confirm('Esto invalidará el token actual. ¿Continuar?');">
+                        <?php echo $token === '' ? 'Generar token' : 'Regenerar token'; ?>
+                    </button>
+                </form>
+            </div>
+
+            <?php if ($token !== ''): ?>
+                <div class="wpdm-alert wpdm-alert--info" style="margin-top: 16px;">
+                    <strong>cURL:</strong><br />
+                    <code style="font-size: 0.8em; word-break: break-all;">curl -H "X-WPDM-Token: <?php echo esc_html($token); ?>" <?php echo esc_html($endpoint); ?></code>
+                </div>
+            <?php endif; ?>
+        </div>
     </div>
 
-    <!-- Estado actual -->
-    <div class="wpdm-section">
-        <h2>Estado actual</h2>
-        <table class="wpdm-cron-config">
-            <tr>
-                <th>Estado</th>
-                <td><span class="wpdm-badge wpdm-badge--inactive">Inactivo</span></td>
-            </tr>
-            <tr>
-                <th>Última sincronización</th>
-                <td>—</td>
-            </tr>
-            <tr>
-                <th>Próxima ejecución</th>
-                <td>—</td>
-            </tr>
-            <tr>
-                <th>Hora del servidor</th>
-                <td><?php echo esc_html($server_time); ?> (<?php echo esc_html($timezone); ?>)</td>
-            </tr>
-        </table>
+    <!-- Historial -->
+    <div class="wpdm-cards wpdm-cards--full">
+        <div class="wpdm-card">
+            <div class="wpdm-card-header">
+                <h2><span class="dashicons dashicons-backup"></span> Historial de ejecuciones</h2>
+                <?php if (!empty($history)): ?>
+                    <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="wpdm-card-action">
+                        <input type="hidden" name="action" value="<?php echo esc_attr($actions['clear']); ?>" />
+                        <?php wp_nonce_field($actions['clear']); ?>
+                        <button type="submit" class="button button-link-delete wpdm-clear-btn"
+                                onclick="return confirm('¿Limpiar historial?');">Limpiar</button>
+                    </form>
+                <?php endif; ?>
+            </div>
+
+            <?php if (empty($history)): ?>
+                <div class="wpdm-empty">
+                    <span class="dashicons dashicons-update"></span>
+                    <p>No hay ejecuciones registradas.</p>
+                </div>
+            <?php else: ?>
+                <div class="wpdm-table-responsive">
+                    <table class="wpdm-history-table">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Tipo</th>
+                            <th>Estado</th>
+                            <th>Duración</th>
+                            <th>Procesados</th>
+                            <th>Detalle</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach (array_reverse($history) as $row):
+                            $stats = $row['stats'] ?? [];
+                        ?>
+                            <tr>
+                                <td><?php echo esc_html(Formatter::timestamp((int) $row['timestamp'])); ?></td>
+                                <td><?php echo esc_html(ucfirst((string) ($row['type'] ?? '—'))); ?></td>
+                                <td>
+                                    <?php if ($row['status'] === 'success'): ?>
+                                        <span class="wpdm-badge wpdm-badge--active">OK</span>
+                                    <?php else: ?>
+                                        <span class="wpdm-badge wpdm-badge--inactive">Error</span>
+                                    <?php endif; ?>
+                                </td>
+                                <td><?php echo esc_html(number_format((float) ($row['duration'] ?? 0), 2)); ?>s</td>
+                                <td><?php echo esc_html((string) (int) ($stats['processed'] ?? 0)); ?></td>
+                                <td>
+                                    <div class="wpdm-history-detail">
+                                        <span class="wpdm-history-stats">
+                                            <span class="ok"><?php echo (int) ($stats['succeeded'] ?? 0); ?> ok</span>
+                                            <span class="err"><?php echo (int) ($stats['failed'] ?? 0); ?> err</span>
+                                            <span class="skip"><?php echo (int) ($stats['skipped'] ?? 0); ?> skip</span>
+                                        </span>
+                                        <?php 
+                                        // Si es tipo 'project', mostrar enlace al proyecto
+                                        if (($row['type'] ?? '') === 'project' && !empty($row['context']['post_id'])): 
+                                            $postId = (int) $row['context']['post_id'];
+                                            $title = $row['context']['title'] ?? "Proyecto #{$postId}";
+                                            $editUrl = get_edit_post_link($postId);
+                                            if ($editUrl):
+                                        ?>
+                                            <span class="wpdm-history-separator">•</span>
+                                            <a href="<?php echo esc_url($editUrl); ?>" 
+                                               class="wpdm-project-link"
+                                               title="Ver proyecto: <?php echo esc_attr($title); ?>">
+                                                <span class="dashicons dashicons-visibility"></span>
+                                                <span><?php echo esc_html($title); ?></span>
+                                            </a>
+                                        <?php 
+                                            endif;
+                                        endif; 
+                                        ?>
+                                    </div>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+                </div>
+            <?php endif; ?>
+        </div>
     </div>
 
-    <!-- Historial de ejecuciones -->
-    <div class="wpdm-section">
-        <h2>Historial de ejecuciones</h2>
-        <table class="widefat striped">
-            <thead>
-                <tr>
-                    <th>Fecha</th>
-                    <th>Duración</th>
-                    <th>Registros procesados</th>
-                    <th>Estado</th>
-                    <th>Mensaje</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td colspan="5" style="text-align: center; padding: 20px; color: #646970;">
-                        No hay ejecuciones registradas aún.
-                    </td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
-
-    <!-- Errores de sincronización -->
-    <div class="wpdm-section">
-        <h2>Errores de sincronización</h2>
-        <table class="widefat striped">
-            <thead>
-                <tr>
-                    <th>Fecha</th>
-                    <th>Tipo de error</th>
-                    <th>Mensaje</th>
-                    <th>Datos afectados</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td colspan="4" style="text-align: center; padding: 20px; color: #646970;">
-                        No se han registrado errores.
-                    </td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
+    <!-- Errores por proyecto -->
+    <?php if (!empty($errors)): ?>
+        <div class="wpdm-cards wpdm-cards--full">
+            <div class="wpdm-card">
+                <h2><span class="dashicons dashicons-warning"></span> Errores recientes por proyecto</h2>
+                <table class="wpdm-history-table">
+                    <thead>
+                        <tr>
+                            <th>Proyecto</th>
+                            <th>Error</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($errors as $e): ?>
+                            <tr>
+                                <td>
+                                    <a href="<?php echo esc_url(get_edit_post_link($e['project']['post_id'])); ?>">
+                                        <?php echo esc_html($e['project']['title']); ?>
+                                    </a>
+                                </td>
+                                <td style="color: #991b1b;"><?php echo esc_html($e['error']); ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    <?php endif; ?>
 </div>
+
+<style>
+@keyframes rotation {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+#wpdm-run-spinner {
+    animation: rotation 1s infinite linear;
+    display: inline-block;
+    margin-right: 4px;
+}
+</style>
+
+<script>
+(function() {
+    var form = document.getElementById('wpdm-manual-run-form');
+    var button = document.getElementById('wpdm-run-button');
+    var spinner = document.getElementById('wpdm-run-spinner');
+    var text = document.getElementById('wpdm-run-text');
+    
+    if (form && button) {
+        form.addEventListener('submit', function() {
+            // Deshabilitar botón y mostrar spinner
+            button.disabled = true;
+            button.style.opacity = '0.5';
+            button.style.cursor = 'not-allowed';
+            
+            if (spinner) {
+                spinner.style.display = 'inline-block';
+            }
+            
+            if (text) {
+                text.textContent = 'Iniciando...';
+            }
+        });
+    }
+})();
+</script>

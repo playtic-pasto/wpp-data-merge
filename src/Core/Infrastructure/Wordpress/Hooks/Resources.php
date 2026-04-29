@@ -25,7 +25,17 @@ class Resources
       */
      public function enqueueAdminStyles(string $hook): void
     {
-        if (strpos($hook, 'wpdm') === false) {
+        // Cargar en páginas del plugin WP Data Merge
+        $isWpdmPage = strpos($hook, 'wpdm') !== false;
+        
+        // Cargar en páginas de edición del post type 'proyecto'
+        $isProjectEdit = false;
+        if (in_array($hook, ['post.php', 'post-new.php'], true)) {
+            global $post_type;
+            $isProjectEdit = $post_type === 'proyecto';
+        }
+        
+        if (!$isWpdmPage && !$isProjectEdit) {
             return;
         }
 
