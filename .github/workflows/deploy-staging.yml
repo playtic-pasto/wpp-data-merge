@@ -1,0 +1,52 @@
+name: Deploy to Hostinger WordPress (Staging)
+on:
+  push:
+    branches:
+      - staging
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.HOSTINGER_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -p ${{ secrets.HOSTINGER_PORT }} ${{ secrets.HOSTINGER_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Test SSH connection
+        run: |
+          ssh -p ${{ secrets.HOSTINGER_PORT }} \
+          ${{ secrets.HOSTINGER_USER }}@${{ secrets.HOSTINGER_HOST }} \
+          "pwd && ls -la"
+
+      - name: Create remote directory if not exists
+        run: |
+          ssh -p ${{ secrets.HOSTINGER_PORT }} \
+            ${{ secrets.HOSTINGER_USER }}@${{ secrets.HOSTINGER_HOST }} \
+            "mkdir -p ${{ vars.HOSTINGER_PATH_STAGING }}"
+
+      - name: Deploy to Hostinger Staging
+        run: |
+          rsync -avz --delete \
+            --chown=${{ secrets.HOSTINGER_USER_GROUP_PERMISSION }} \
+            -e "ssh -p ${{ secrets.HOSTINGER_PORT }}" \
+            --exclude ".git/" \
+            --exclude ".github/" \
+            ./ \
+            ${{ secrets.HOSTINGER_USER }}@${{ secrets.HOSTINGER_HOST }}:${{ vars.HOSTINGER_PATH_STAGING }}/
+
+      - name: Verify deployment
+        run: |
+          echo "🚀 Plugin deployed successfully!"
+          echo "📍 Deployment path: ${{ vars.HOSTINGER_PATH_STAGING }}"
+          echo "📂 Verifying files in remote server..."
+          ssh -p ${{ secrets.HOSTINGER_PORT }} \
+            ${{ secrets.HOSTINGER_USER }}@${{ secrets.HOSTINGER_HOST }} \
+            "echo '📁 Full path:' && pwd && cd ${{ vars.HOSTINGER_PATH_STAGING }} && pwd && echo '' && echo '📄 Files:' && ls -lah"
+

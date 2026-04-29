@@ -1,0 +1,80 @@
+name: Deploy to Hostinger WordPress (Production)
+on:
+  workflow_dispatch:
+  
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # --- Paso 1: Checkout del repo completo (necesario para tags y deploy) ---
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # --- Paso 2: Leer versión desde el archivo principal del plugin ---
+      - name: Get plugin version
+        id: get_version
+        run: |
+          plugin_file="wwpp-data-merge.php"
+          version_line=$(grep -i "Version:" "$plugin_file" | head -1)
+          version=$(echo "$version_line" | sed -E 's/.*Version:[[:space:]]*([0-9]+\.[0-9]+\.[0-9]+).*/\1/')
+          echo "version=$version" >> $GITHUB_OUTPUT
+          echo "Detected plugin version: $version"
+
+      # --- Paso 3: Obtener la última tag del repositorio ---
+      - name: Get latest tag
+        id: get_latest_tag
+        run: |
+          latest_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "none")
+          echo "latest_tag=$latest_tag" >> $GITHUB_OUTPUT
+          echo "Latest git tag: $latest_tag"
+
+      # --- Paso 4: Comparar versiones ---
+      - name: Compare versions
+        id: compare
+        run: |
+          current="v${{ steps.get_version.outputs.version }}"
+          latest="${{ steps.get_latest_tag.outputs.latest_tag }}"
+          echo "Current: $current"
+          echo "Latest:  $latest"
+
+          if [ "$current" = "$latest" ]; then
+            echo "skip=true" >> $GITHUB_OUTPUT
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+
+      # --- Paso 5: Crear o reutilizar la tag existente ---
+      - name: Handle tag creation
+        id: handle_tag
+        run: |
+          current="v${{ steps.get_version.outputs.version }}"
+          latest="${{ steps.get_latest_tag.outputs.latest_tag }}"
+
+          if [ "$current" = "$latest" ]; then
+            echo "Tag $current already exists. Will reuse it."
+            echo "tag_to_deploy=$latest" >> $GITHUB_OUTPUT
+            echo "new_release=false" >> $GITHUB_OUTPUT
+          else
+            echo "Creating new tag: $current"
+            git tag "$current"
+            git push origin "$current"
+            echo "tag_to_deploy=$current" >> $GITHUB_OUTPUT
+            echo "new_release=true" >> $GITHUB_OUTPUT
+          fi
+
+      # --- Paso 6: Crear release solo si es nuevo ---
+      - name: Create GitHub Release
+        if: steps.handle_tag.outputs.new_release == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.handle_tag.outputs.tag_to_deploy }}
+          name: WODME ${{ steps.handle_tag.outputs.tag_to_deploy }}
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

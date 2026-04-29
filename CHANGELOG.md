@@ -7,6 +7,15 @@ El formato se basa en [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) y
 
 ---
 
+## [1.0.0]
+
+### Fixed fernando.jaramillo - 2026-04-28
+
+- Version estable del plugin, con funcionalidades completas de sincronización de datos entre WordPress y la API externa.
+- Se implementa un sistema de logging detallado para monitorear el proceso de sincronización.
+
+---
+
 ## [0.0.1-alpha.2]
 
 ### Fixed fernando.jaramillo - 2026-04-08
