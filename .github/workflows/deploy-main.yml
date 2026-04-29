@@ -24,11 +24,17 @@ jobs:
           php-version: '8.1'
           tools: composer:v2
 
-      # --- Paso 3: Instalar dependencias de Composer ---
+      # --- Paso 3: Instalar dependencias y generar autoloader ---
       - name: Install Composer dependencies
         run: |
           composer install --no-dev --optimize-autoloader --no-interaction
+          composer dump-autoload --optimize --no-dev
           echo "✅ Composer dependencies installed"
+          echo "📋 Verifying vendor directory..."
+          ls -lah vendor/ || echo "⚠️ vendor/ not found"
+          ls -lah vendor/composer/ || echo "⚠️ vendor/composer/ not found"
+          echo "🔍 Checking PSR-4 autoload mapping..."
+          cat vendor/composer/autoload_psr4.php | grep -A2 "WPDM" || echo "⚠️ WPDM namespace not found in autoloader!"
 
       # --- Paso 4: Leer versión desde el archivo principal del plugin ---
       - name: Get plugin version
@@ -108,10 +114,19 @@ jobs:
             --exclude='.DS_Store' \
             ./ /tmp/build/$plugin_name/
           
+          # Verificar que vendor/ existe
+          echo "🔍 Verifying vendor directory in build..."
+          ls -lah /tmp/build/$plugin_name/vendor/ || echo "⚠️ WARNING: vendor/ not found in build!"
+          ls -lah /tmp/build/$plugin_name/vendor/composer/ || echo "⚠️ WARNING: vendor/composer/ not found in build!"
+          
           # Crear ZIP
           cd /tmp/build
           zip -r "$zip_name" "$plugin_name/"
           mv "$zip_name" $GITHUB_WORKSPACE/
+          
+          # Verificar contenido del ZIP
+          echo "🔍 Verifying ZIP contents..."
+          unzip -l "$GITHUB_WORKSPACE/$zip_name" | grep "vendor/autoload.php" || echo "⚠️ WARNING: vendor/autoload.php not found in ZIP!"
           
           echo "zip_name=$zip_name" >> $GITHUB_OUTPUT
           echo "zip_path=$GITHUB_WORKSPACE/$zip_name" >> $GITHUB_OUTPUT

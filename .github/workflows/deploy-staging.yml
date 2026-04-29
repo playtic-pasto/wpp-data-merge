@@ -21,7 +21,13 @@ jobs:
       - name: Install Composer dependencies
         run: |
           composer install --no-dev --optimize-autoloader --no-interaction
+          composer dump-autoload --optimize --no-dev
           echo "✅ Composer dependencies installed"
+          echo "📋 Verifying vendor directory..."
+          ls -lah vendor/ || echo "⚠️ vendor/ not found"
+          ls -lah vendor/composer/ || echo "⚠️ vendor/composer/ not found"
+          echo "🔍 Checking PSR-4 autoload mapping..."
+          cat vendor/composer/autoload_psr4.php | grep -A2 "WPDM" || echo "⚠️ WPDM namespace not found in autoloader!"
 
       - name: Setup SSH key
         run: |
