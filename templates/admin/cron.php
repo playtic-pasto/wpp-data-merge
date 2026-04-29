@@ -12,6 +12,8 @@ use WPDM\Core\Infrastructure\WordPress\Admin\Support\Formatter;
 /** @var string $endpoint */
 /** @var list<array{project:array<string,mixed>, error:string}> $errors */
 /** @var array<string, string> $actions */
+/** @var bool $isRunning */
+/** @var int $cooldownRemaining */
 
 $serverTime = current_time('Y-m-d H:i:s');
 $timezone   = wp_timezone_string();
@@ -99,10 +101,30 @@ $minutes    = $settings->intervalMinutes();
 
             <hr style="border: none; border-top: 1px solid #f0f0f1; margin: 20px 0;" />
 
-            <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="display:inline-block;">
+            <?php if ($isRunning): ?>
+                <div class="wpdm-alert wpdm-alert--info" style="margin-bottom: 16px;">
+                    <span class="dashicons dashicons-update" style="animation: rotation 2s infinite linear;"></span>
+                    <strong>Sincronización en progreso...</strong> 
+                    <?php if ($cooldownRemaining > 0): ?>
+                        Tiempo restante estimado: <?php echo esc_html(gmdate('i:s', $cooldownRemaining)); ?>
+                    <?php endif; ?>
+                    <br><small>Regresa en un momento para ver el resultado de la sincronización.</small>
+                </div>
+            <?php endif; ?>
+
+            <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" 
+                  style="display:inline-block;" 
+                  id="wpdm-manual-run-form">
                 <input type="hidden" name="action" value="<?php echo esc_attr($actions['run']); ?>" />
                 <?php wp_nonce_field($actions['run']); ?>
-                <?php submit_button('Ejecutar ahora', 'secondary', 'submit', false); ?>
+                <button type="submit" 
+                        class="button button-secondary" 
+                        id="wpdm-run-button"
+                        <?php echo $isRunning ? 'disabled' : ''; ?>
+                        style="<?php echo $isRunning ? 'opacity: 0.5; cursor: not-allowed;' : ''; ?>">
+                    <span class="dashicons dashicons-update" id="wpdm-run-spinner" style="display:none;"></span>
+                    <span id="wpdm-run-text">Ejecutar ahora</span>
+                </button>
             </form>
 
             <?php if ($lastError !== ''): ?>
@@ -272,3 +294,45 @@ $minutes    = $settings->intervalMinutes();
         </div>
     <?php endif; ?>
 </div>
+
+<style>
+@keyframes rotation {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+#wpdm-run-spinner {
+    animation: rotation 1s infinite linear;
+    display: inline-block;
+    margin-right: 4px;
+}
+</style>
+
+<script>
+(function() {
+    var form = document.getElementById('wpdm-manual-run-form');
+    var button = document.getElementById('wpdm-run-button');
+    var spinner = document.getElementById('wpdm-run-spinner');
+    var text = document.getElementById('wpdm-run-text');
+    
+    if (form && button) {
+        form.addEventListener('submit', function() {
+            // Deshabilitar botón y mostrar spinner
+            button.disabled = true;
+            button.style.opacity = '0.5';
+            button.style.cursor = 'not-allowed';
+            
+            if (spinner) {
+                spinner.style.display = 'inline-block';
+            }
+            
+            if (text) {
+                text.textContent = 'Iniciando...';
+            }
+        });
+    }
+})();
+</script>

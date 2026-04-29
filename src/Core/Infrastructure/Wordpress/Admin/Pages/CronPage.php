@@ -9,6 +9,7 @@ use WPDM\Core\Domain\Sync\ProjectSyncService;
 use WPDM\Core\Infrastructure\WordPress\Controllers\CronController;
 use WPDM\Core\Infrastructure\WordPress\Cron\CronHistory;
 use WPDM\Core\Infrastructure\WordPress\Cron\CronRestController;
+use WPDM\Core\Infrastructure\WordPress\Cron\CronRunner;
 use WPDM\Core\Infrastructure\WordPress\Cron\CronScheduler;
 use WPDM\Core\Infrastructure\WordPress\Cron\CronSettings;
 
@@ -27,11 +28,13 @@ class CronPage
         private ?CronScheduler $scheduler = null,
         private ?CronHistory $history = null,
         private ?ProjectsRepository $projects = null,
+        private ?CronRunner $runner = null,
     ) {
         $this->settings  ??= new CronSettings();
         $this->scheduler ??= null; // inyectado por el container
         $this->history   ??= new CronHistory($this->settings);
         $this->projects  ??= new ProjectsRepository();
+        $this->runner    ??= null; // inyectado por el container
     }
 
     public function render(): void
@@ -57,6 +60,10 @@ class CronPage
             'token' => CronController::ACTION_TOKEN,
             'clear' => CronController::ACTION_CLEAR,
         ];
+        
+        // Estado de ejecución para UI
+        $isRunning = $this->runner?->isRunning() ?? false;
+        $cooldownRemaining = $this->runner?->manualCooldownRemaining() ?? 0;
 
         include WPDM_PATH . 'templates/admin/cron.php';
     }

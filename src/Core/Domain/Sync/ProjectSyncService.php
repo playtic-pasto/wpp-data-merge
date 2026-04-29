@@ -350,16 +350,20 @@ class ProjectSyncService
             update_field($acfFieldName, $aggregates[$aggregateKey], $postId);
         }
 
+        // Limpieza de repeater de estados antes de actualizar
         $statusRows = [];
         foreach (($aggregates['by_status'] ?? []) as $name => $count) {
             $statusRows[] = ['status_name' => $name, 'status_count' => $count];
         }
+        delete_field('wpdm_by_status', $postId);
         update_field('wpdm_by_status', $statusRows, $postId);
 
+        // Limpieza de repeater de tipos antes de actualizar
         $typeRows = [];
         foreach (($aggregates['by_type'] ?? []) as $name => $count) {
             $typeRows[] = ['type_name' => $name, 'type_count' => $count];
         }
+        delete_field('wpdm_by_type', $postId);
         update_field('wpdm_by_type', $typeRows, $postId);
     }
 
