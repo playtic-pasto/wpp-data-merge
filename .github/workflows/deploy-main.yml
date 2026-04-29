@@ -11,16 +11,26 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
       # --- Paso 1: Checkout del repo completo (necesario para tags y deploy) ---
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      # --- Paso 2: Leer versión desde el archivo principal del plugin ---
+      # --- Paso 2: Setup PHP para Composer ---
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          tools: composer:v2
+
+      # --- Paso 3: Instalar dependencias de Composer ---
+      - name: Install Composer dependencies
+        run: |
+          composer install --no-dev --optimize-autoloader --no-interaction
+          echo "✅ Composer dependencies installed"
+
+      # --- Paso 4: Leer versión desde el archivo principal del plugin ---
       - name: Get plugin version
         id: get_version
         run: |
@@ -30,7 +40,7 @@ jobs:
           echo "version=$version" >> $GITHUB_OUTPUT
           echo "Detected plugin version: $version"
 
-      # --- Paso 3: Obtener la última tag del repositorio ---
+      # --- Paso 5: Obtener la última tag del repositorio ---
       - name: Get latest tag
         id: get_latest_tag
         run: |
@@ -38,7 +48,7 @@ jobs:
           echo "latest_tag=$latest_tag" >> $GITHUB_OUTPUT
           echo "Latest git tag: $latest_tag"
 
-      # --- Paso 4: Comparar versiones ---
+      # --- Paso 6: Comparar versiones ---
       - name: Compare versions
         id: compare
         run: |
@@ -53,7 +63,7 @@ jobs:
             echo "skip=false" >> $GITHUB_OUTPUT
           fi
 
-      # --- Paso 5: Crear o reutilizar la tag existente ---
+      # --- Paso 7: Crear o reutilizar la tag existente ---
       - name: Handle tag creation
         id: handle_tag
         run: |
@@ -72,7 +82,42 @@ jobs:
             echo "new_release=true" >> $GITHUB_OUTPUT
           fi
 
-      # --- Paso 6: Crear release solo si es nuevo ---
+      # --- Paso 8: Crear ZIP optimizado para producción ---
+      - name: Create production ZIP
+        id: create_zip
+        run: |
+          plugin_name="wpp-data-merge"
+          version="${{ steps.get_version.outputs.version }}"
+          zip_name="${plugin_name}-${version}.zip"
+          
+          echo "📦 Creating production ZIP: $zip_name"
+          
+          # Crear directorio temporal
+          mkdir -p /tmp/build
+          
+          # Copiar archivos necesarios excluyendo archivos de desarrollo
+          rsync -av \
+            --exclude='.git/' \
+            --exclude='.github/' \
+            --exclude='.gitignore' \
+            --exclude='composer.json' \
+            --exclude='composer.lock' \
+            --exclude='logs/' \
+            --exclude='*.log' \
+            --exclude='node_modules/' \
+            --exclude='.DS_Store' \
+            ./ /tmp/build/$plugin_name/
+          
+          # Crear ZIP
+          cd /tmp/build
+          zip -r "$zip_name" "$plugin_name/"
+          mv "$zip_name" $GITHUB_WORKSPACE/
+          
+          echo "zip_name=$zip_name" >> $GITHUB_OUTPUT
+          echo "zip_path=$GITHUB_WORKSPACE/$zip_name" >> $GITHUB_OUTPUT
+          echo "✅ ZIP created: $zip_name"
+
+      # --- Paso 9: Crear release solo si es nuevo ---
       - name: Create GitHub Release
         if: steps.handle_tag.outputs.new_release == 'true'
         uses: softprops/action-gh-release@v2
@@ -80,5 +125,14 @@ jobs:
           tag_name: ${{ steps.handle_tag.outputs.tag_to_deploy }}
           name: WPDM ${{ steps.handle_tag.outputs.tag_to_deploy }}
           generate_release_notes: true
+          files: ${{ steps.create_zip.outputs.zip_path }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # --- Paso 10: Verificación final ---
+      - name: Deployment summary
+        run: |
+          echo "🎉 Deployment completed successfully!"
+          echo "📌 Tag: ${{ steps.handle_tag.outputs.tag_to_deploy }}"
+          echo "📦 ZIP: ${{ steps.create_zip.outputs.zip_name }}"
+          echo "🆕 New release: ${{ steps.handle_tag.outputs.new_release }}"
