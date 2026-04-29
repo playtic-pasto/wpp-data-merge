@@ -12,6 +12,17 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          tools: composer:v2
+
+      - name: Install Composer dependencies
+        run: |
+          composer install --no-dev --optimize-autoloader --no-interaction
+          echo "✅ Composer dependencies installed"
+
       - name: Setup SSH key
         run: |
           mkdir -p ~/.ssh
@@ -38,6 +49,13 @@ jobs:
             -e "ssh -p ${{ secrets.HOSTINGER_PORT }}" \
             --exclude ".git/" \
             --exclude ".github/" \
+            --exclude ".gitignore" \
+            --exclude "composer.json" \
+            --exclude "composer.lock" \
+            --exclude "logs/" \
+            --exclude "*.log" \
+            --exclude "node_modules/" \
+            --exclude ".DS_Store" \
             ./ \
             ${{ secrets.HOSTINGER_USER }}@${{ secrets.HOSTINGER_HOST }}:${{ vars.HOSTINGER_PATH_STAGING }}/
 
