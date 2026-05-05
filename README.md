@@ -38,3 +38,5 @@ Una vez activado, el plugin comenzará a sincronizar los datos automáticamente 
 ## Licencia
 
 GPLv2 o posterior. Consulta el archivo principal del plugin para más detalles.
+
+## Sistema finalizado
