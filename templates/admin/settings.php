@@ -29,12 +29,13 @@ if ($test_result !== false) {
                 <?php wp_nonce_field('wpdm_save_settings', 'wpdm_settings_nonce'); ?>
                 <table class="wpdm-status-table">
                     <tr>
-                        <th><label for="wpdm_api_endpoint">Endpoint</label></th>
+                        <th><label for="wpdm_api_endpoint">Endpoint (URL base)</label></th>
                         <td>
                             <input type="url" id="wpdm_api_endpoint" name="wpdm_api_endpoint"
                                    value="<?php echo esc_attr($endpoint); ?>"
-                                   class="regular-text" placeholder="https://ejemplo.com/api"
+                                   class="regular-text" placeholder="https://sinco.ejemplo.com/NombreInstancia"
                                    style="width: 100%;" />
+                            <p class="description">Solo la URL base, sin incluir rutas como <code>/V3/API/Auth/Usuario</code>. Ejemplo: <code>https://sinco.ejemplo.com/MiInstancia</code></p>
                         </td>
                     </tr>
                     <tr>
