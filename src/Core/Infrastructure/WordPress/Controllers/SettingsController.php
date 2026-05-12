@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace WPDM\Core\Infrastructure\WordPress\Controllers;
 
 use WPDM\Shared\Encryption\WPDM_Encryption;
+use WPDM\Core\Infrastructure\Api\CredentialLoader;
 use WPDM\Core\Infrastructure\Api\WPDM_AuthService;
 use WPDM\Shared\Logger\WPDM_Logger;
 use WPDM\Shared\Helpers\UserHelper;
@@ -79,7 +80,8 @@ class SettingsController
      */
     private function saveEndpoint(): void
     {
-        $endpoint = sanitize_url($_POST['wpdm_api_endpoint'] ?? '');
+        $raw = sanitize_url($_POST['wpdm_api_endpoint'] ?? '');
+        $endpoint = (new CredentialLoader())->normalizeEndpoint($raw);
         update_option($this->apiConfig['option_endpoint'], $endpoint);
         $this->logger->info("Settings: endpoint actualizado a '{$endpoint}' por " . UserHelper::getCurrentUserLabel());
     }

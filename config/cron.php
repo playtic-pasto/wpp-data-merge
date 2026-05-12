@@ -17,7 +17,10 @@ return [
     'schedule_id'             => 'wpdm_dynamic_interval',
 
     // Intervalo por defecto en minutos (se puede sobreescribir por option).
-    'default_interval_minutes' => 30,
+    'default_interval_minutes' => 60,
+
+    // Opciones permitidas para el intervalo (minutos).
+    'allowed_intervals'       => [60, 120, 240, 480, 720, 1440],
 
     // TTL del lock atómico (segundos). Si una ejecución muere sin liberar, se recupera tras este tiempo.
     'lock_ttl'                => 300,

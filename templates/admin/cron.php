@@ -19,6 +19,15 @@ $serverTime = current_time('Y-m-d H:i:s');
 $timezone   = wp_timezone_string();
 $enabled    = $settings->isEnabled();
 $minutes    = $settings->intervalMinutes();
+$intervalLabels = [
+    60   => 'Cada hora',
+    120  => 'Cada 2 horas',
+    240  => 'Cada 4 horas',
+    480  => 'Cada 8 horas',
+    720  => '2 veces al día',
+    1440 => '1 vez al día',
+];
+$intervalLabel = $intervalLabels[$minutes] ?? "{$minutes} min";
 ?>
 <div class="wrap wpdm-wrap">
     <h1>Cron Job</h1>
@@ -58,8 +67,8 @@ $minutes    = $settings->intervalMinutes();
                 <span class="dashicons dashicons-update"></span>
             </div>
             <div class="wpdm-stat-content">
-                <span class="wpdm-stat-value"><?php echo esc_html((string) $minutes); ?></span>
-                <span class="wpdm-stat-label">Intervalo (min)</span>
+                <span class="wpdm-stat-value wpdm-stat-value--small"><?php echo esc_html($intervalLabel); ?></span>
+                <span class="wpdm-stat-label">Intervalo</span>
             </div>
         </div>
     </div>
@@ -85,11 +94,23 @@ $minutes    = $settings->intervalMinutes();
                     <tr>
                         <th><label for="wpdm_cron_interval_minutes">Intervalo</label></th>
                         <td>
-                            <input type="number" min="1" max="10080" step="1"
-                                   id="wpdm_cron_interval_minutes"
-                                   name="wpdm_cron_interval_minutes"
-                                   value="<?php echo esc_attr((string) $minutes); ?>"
-                                   class="small-text" /> minutos
+                            <?php
+                            $intervalOptions = [
+                                60   => 'Cada hora',
+                                120  => 'Cada 2 horas',
+                                240  => 'Cada 4 horas',
+                                480  => 'Cada 8 horas',
+                                720  => '2 veces al día',
+                                1440 => '1 vez al día',
+                            ];
+                            ?>
+                            <select id="wpdm_cron_interval_minutes" name="wpdm_cron_interval_minutes">
+                                <?php foreach ($intervalOptions as $value => $label): ?>
+                                    <option value="<?php echo esc_attr((string) $value); ?>" <?php selected($minutes, $value); ?>>
+                                        <?php echo esc_html($label); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
                         </td>
                     </tr>
                 </table>

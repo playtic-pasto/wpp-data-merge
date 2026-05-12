@@ -16,6 +16,19 @@ El formato se basa en [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) y
 
 ---
 
+## [1.0.1]
+
+### Fixed luis.daniel - 2026-05-11
+
+- Se corrige warning repetido de credenciales faltantes al activar el plugin: ahora solo se registra una vez por request.
+- El campo Endpoint ahora solo acepta la URL base, se normaliza automáticamente al guardar (elimina rutas como `/V3/API/Auth/Usuario`).
+- Se reemplaza el input numérico del intervalo del Cron Job por un select con opciones predefinidas: cada hora, cada 2 horas, cada 4 horas, cada 8 horas, 2 veces al día, 1 vez al día.
+- Se corrige bug donde los filtros por proyecto aparecían visibles cuando los filtros globales estaban activos por defecto (primera configuración).
+- Se agrega purga automática del historial de ejecuciones: se eliminan registros con más de 30 días de antigüedad.
+- Los campos ID Macroproyecto, Proyectos Asociados e ID Proyecto ya no son obligatorios, permitiendo publicar un proyecto sin tener configurados los IDs de SINCO.
+
+---
+
 ## [0.0.1-alpha.2]
 
 ### Fixed fernando.jaramillo - 2026-04-08
