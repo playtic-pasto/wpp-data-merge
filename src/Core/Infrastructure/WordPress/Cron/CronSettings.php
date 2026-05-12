@@ -50,13 +50,19 @@ class CronSettings
 
     public function intervalMinutes(): int
     {
-        $value = (int) \get_option($this->config['option_interval'], (int) $this->config['default_interval_minutes']);
-        return \max($value, 1);
+        $default  = (int) $this->config['default_interval_minutes'];
+        $value    = (int) \get_option($this->config['option_interval'], $default);
+        $allowed  = (array) ($this->config['allowed_intervals'] ?? []);
+
+        return !empty($allowed) && !\in_array($value, $allowed, true) ? $default : $value;
     }
 
     public function setIntervalMinutes(int $minutes): void
     {
-        $minutes = \max($minutes, 1);
+        $allowed = (array) ($this->config['allowed_intervals'] ?? []);
+        if (!empty($allowed) && !\in_array($minutes, $allowed, true)) {
+            $minutes = (int) $this->config['default_interval_minutes'];
+        }
         \update_option($this->config['option_interval'], $minutes);
     }
 

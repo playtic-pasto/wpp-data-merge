@@ -13,6 +13,9 @@ namespace WPDM\Core\Infrastructure\WordPress\Cron;
  */
 class CronHistory
 {
+    /** Retención máxima del historial en segundos (30 días). */
+    private const RETENTION_SECONDS = 30 * 24 * 60 * 60;
+
     public function __construct(private CronSettings $settings) {}
 
     /**
@@ -39,6 +42,11 @@ class CronHistory
 
         $history[] = $entry;
 
+        // Purgar entradas con más de 30 días de antigüedad
+        $cutoff  = \time() - self::RETENTION_SECONDS;
+        $history = \array_values(\array_filter($history, fn(array $row): bool => ((int) ($row['timestamp'] ?? 0)) >= $cutoff));
+
+        // Limitar al tamaño máximo configurado
         $max = $this->settings->historySize();
         if (\count($history) > $max) {
             $history = \array_slice($history, -$max);

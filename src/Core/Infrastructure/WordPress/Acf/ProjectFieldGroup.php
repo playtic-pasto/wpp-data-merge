@@ -98,7 +98,7 @@ class ProjectFieldGroup
             'name' => 'id_macroproject',
             'type' => 'number',
             'instructions' => 'Identificador del macroproyecto en el sistema SINCO.',
-            'required' => 1,
+            'required' => 0,
             'min' => 1,
             'step' => 1,
         ];
@@ -120,8 +120,8 @@ class ProjectFieldGroup
             'name' => 'ids_project',
             'type' => 'repeater',
             'instructions' => 'Agrega los IDs de los proyectos SINCO que pertenecen a este macroproyecto.',
-            'required' => 1,
-            'min' => 1,
+            'required' => 0,
+            'min' => 0,
             'layout' => 'table',
             'button_label' => 'Agregar Proyecto',
             'sub_fields' => [
@@ -131,7 +131,7 @@ class ProjectFieldGroup
                     'name' => 'id_project',
                     'type' => 'number',
                     'instructions' => 'ID del proyecto en SINCO.',
-                    'required' => 1,
+                    'required' => 0,
                     'min' => 1,
                     'step' => 1,
                 ],
@@ -265,14 +265,8 @@ class ProjectFieldGroup
             return $field;
         }
 
-        // Verificar si los filtros globales están activados
-        $globalEnabled = false;
-        if (function_exists('get_field')) {
-            $globalEnabled = (bool) get_field('wpdm_enable_global_filters', 'option');
-        }
-
         // Mostrar el mensaje solo si los filtros globales están activados
-        if (!$globalEnabled) {
+        if (!$this->isGlobalFiltersEnabled()) {
             return false;
         }
 
@@ -294,17 +288,29 @@ class ProjectFieldGroup
             return $field;
         }
 
-        // Verificar si los filtros globales están activados
-        $globalEnabled = false;
-        if (function_exists('get_field')) {
-            $globalEnabled = (bool) get_field('wpdm_enable_global_filters', 'option');
-        }
-
         // Si los filtros globales están activados, ocultar este campo
-        if ($globalEnabled) {
+        if ($this->isGlobalFiltersEnabled()) {
             return false;
         }
 
         return $field;
+    }
+
+    /**
+     * Verifica si los filtros globales están habilitados.
+     *
+     * Usa la misma lógica que SyncFiltersReader::isGlobalEnabled():
+     * si el campo nunca se ha guardado (null), se considera habilitado
+     * porque el valor por defecto del campo es 1.
+     */
+    private function isGlobalFiltersEnabled(): bool
+    {
+        if (!function_exists('get_field')) {
+            return true;
+        }
+
+        $enabled = get_field('wpdm_enable_global_filters', 'option');
+
+        return $enabled !== false && $enabled !== 0 && $enabled !== '0';
     }
 }

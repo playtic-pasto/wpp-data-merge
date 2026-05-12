@@ -61,6 +61,15 @@ class CredentialLoader
         return $endpoint === '' ? '' : $this->normalizeBaseUrl($endpoint);
     }
 
+    /**
+     * Normaliza una URL eliminando las rutas conocidas de la API (auth_path, api_base).
+     * Puede usarse al guardar el endpoint para almacenar solo la URL base.
+     */
+    public function normalizeEndpoint(string $endpoint): string
+    {
+        return $this->normalizeBaseUrl($endpoint);
+    }
+
     private function normalizeBaseUrl(string $endpoint): string
     {
         $endpoint = rtrim(trim($endpoint), '/');

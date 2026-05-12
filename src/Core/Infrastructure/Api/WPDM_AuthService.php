@@ -24,6 +24,9 @@ class WPDM_AuthService implements AuthServiceInterface
     private HttpApiClient $httpClient;
     private WPDM_Logger $logger;
 
+    /** Evita loguear el warning de credenciales faltantes más de una vez por request. */
+    private static bool $missingCredentialsWarned = false;
+
     public function __construct(
         ?CredentialLoader $credentialLoader = null,
         ?TokenCacheService $tokenCache = null,
@@ -65,7 +68,10 @@ class WPDM_AuthService implements AuthServiceInterface
 
         if ($credentials === null) {
             $message = 'Faltan credenciales. Guarda el endpoint, usuario y contraseña primero.';
-            $this->logger->warning('Auth: ' . $message);
+            if (!self::$missingCredentialsWarned) {
+                $this->logger->warning('Auth: ' . $message);
+                self::$missingCredentialsWarned = true;
+            }
             return AuthResult::failure($message);
         }
 
